@@ -11,7 +11,8 @@ export default function Home() {
             trace<span className="text-zinc-600">.ly</span>
           </h1>
           <p className="text-zinc-400 text-sm leading-relaxed max-w-xs mx-auto">
-            Secure, real-time location sharing. Accessible only via your temporary link.
+            Secure, real-time location sharing. Accessible only via your
+            temporary link.
           </p>
         </div>
 

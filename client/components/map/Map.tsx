@@ -6,7 +6,7 @@ import L from "leaflet";
 import { useEffect } from "react";
 
 if (typeof window !== "undefined") {
-  // @ts-ignore
+  // @ts-expect-error - _getIconUrl is not defined on the prototype
   delete L.Icon.Default.prototype._getIconUrl;
 
   L.Icon.Default.mergeOptions({

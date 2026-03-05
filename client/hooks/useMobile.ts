@@ -8,10 +8,8 @@ export function useMobile(breakpoint = 1024) {
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < breakpoint);
 
-    // Initial check
     checkMobile();
 
-    // Listen for window resize
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, [breakpoint]);

@@ -24,7 +24,6 @@ export default function RoomPage() {
   const params = useParams();
   const roomId = params.id as string;
 
-  // Custom hook magic
   const { error, myLocation, users, expiryTime } = useRoomSocket(roomId);
 
   const activeParticipants = Object.keys(users).length + (myLocation ? 1 : 0);
