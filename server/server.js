@@ -23,7 +23,6 @@ io.on("connection", (socket) => {
 
   socket.on("create-room", ({ expiryHours }) => {
     const roomId = crypto.randomBytes(3).toString("hex");
-
     const expiryTime = Date.now() + expiryHours * 60 * 60 * 1000;
 
     activeRooms[roomId] = {
@@ -33,7 +32,6 @@ io.on("connection", (socket) => {
     };
 
     socket.join(roomId);
-
     socket.emit("room-created", { roomId, expiryTime });
   });
 
@@ -68,9 +66,7 @@ io.on("connection", (socket) => {
 
     if (room && room.creator === socket.id) {
       io.to(roomId).emit("room-ended");
-
       io.socketsLeave(roomId);
-
       delete activeRooms[roomId];
     }
   });
@@ -79,13 +75,13 @@ io.on("connection", (socket) => {
     for (const roomId in activeRooms) {
       if (activeRooms[roomId].users.has(socket.id)) {
         activeRooms[roomId].users.delete(socket.id);
-
         io.to(roomId).emit("user-left", { userId: socket.id });
       }
     }
   });
 });
 
-server.listen(5000, () => {
-  console.log("Server running on http://localhost:5000");
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });

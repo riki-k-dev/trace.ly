@@ -2,16 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import socket from "../lib/socket";
+import socket from "../../lib/socket";
 
 export default function CreateRoomForm() {
-
   const [expiryHours, setExpiryHours] = useState<number>(1);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const router = useRouter();
 
   useEffect(() => {
-
     socket.connect();
 
     socket.on("room-created", ({ roomId }: { roomId: string }) => {
@@ -22,23 +20,18 @@ export default function CreateRoomForm() {
     return () => {
       socket.off("room-created");
     };
-
   }, [router]);
 
   const handleCreateRoom = (e: React.FormEvent<HTMLFormElement>) => {
-
     e.preventDefault();
     setIsCreating(true);
 
     socket.emit("create-room", { expiryHours });
-
   };
 
   return (
     <form onSubmit={handleCreateRoom} className="w-full space-y-5">
-
       <div className="space-y-1.5">
-
         <label
           htmlFor="expiry"
           className="text-xs font-semibold text-zinc-500 uppercase tracking-widest ml-1"
@@ -47,7 +40,6 @@ export default function CreateRoomForm() {
         </label>
 
         <div className="relative">
-
           <select
             id="expiry"
             value={expiryHours}
@@ -59,7 +51,6 @@ export default function CreateRoomForm() {
             <option value={12}>12 Hours</option>
             <option value={24}>24 Hours</option>
           </select>
-
         </div>
       </div>
 
@@ -70,7 +61,6 @@ export default function CreateRoomForm() {
       >
         {isCreating ? "Initializing..." : "Create Room"}
       </button>
-
     </form>
   );
 }
