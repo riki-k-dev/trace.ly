@@ -50,7 +50,7 @@ async function importKeys(base64Key: string) {
   return { aesKey, hmacKey };
 }
 
-export async function encryptAndSignPayload(keyStr: string, dataObj: any) {
+export async function encryptAndSignPayload(keyStr: string, dataObj: unknown) {
   if (!keyStr) return null;
   const { aesKey, hmacKey } = await importKeys(keyStr);
   const iv = window.crypto.getRandomValues(new Uint8Array(12));
@@ -65,7 +65,7 @@ export async function encryptAndSignPayload(keyStr: string, dataObj: any) {
   const signature = await window.crypto.subtle.sign("HMAC", hmacKey, encrypted);
 
   return {
-    iv: bufferToBase64(iv),
+    iv: bufferToBase64(iv.buffer as ArrayBuffer),
     data: bufferToBase64(encrypted),
     signature: bufferToBase64(signature),
   };

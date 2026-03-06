@@ -59,9 +59,9 @@ export default function RoomPage() {
       {pocketMode && <PocketMode onExit={() => setPocketMode(false)} />}
 
       <div
-        className={`flex flex-col h-[100dvh] bg-zinc-950 relative overflow-hidden lg:p-4 lg:gap-4 ${pocketMode ? "hidden" : ""}`}
+        className={`flex flex-col h-dvh bg-zinc-950 relative overflow-hidden lg:p-4 lg:gap-4 ${pocketMode ? "hidden" : ""}`}
       >
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-32 bg-white/[0.02] blur-[100px] pointer-events-none rounded-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-32 bg-white/2 blur-[100px] pointer-events-none rounded-none" />
 
         <RoomHeader roomId={roomId} />
 
@@ -71,7 +71,7 @@ export default function RoomPage() {
 
             <button
               onClick={() => setPocketMode(true)}
-              className="absolute top-4 right-4 z-[400] bg-zinc-900/90 backdrop-blur border border-zinc-700 text-zinc-200 px-4 py-2 text-sm font-medium shadow-xl hover:bg-zinc-800 transition-colors flex items-center gap-2"
+              className="absolute top-4 right-4 z-400 bg-zinc-900/90 backdrop-blur border border-zinc-700 text-zinc-200 px-4 py-2 text-sm font-medium shadow-xl hover:bg-zinc-800 transition-colors flex items-center gap-2"
             >
               <svg
                 className="w-4 h-4"
@@ -89,7 +89,7 @@ export default function RoomPage() {
               Pocket Mode
             </button>
 
-            <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_40px_rgba(9,9,11,0.5)] z-[399]"></div>
+            <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_40px_rgba(9,9,11,0.5)] z-399"></div>
           </div>
 
           <RoomSidebar

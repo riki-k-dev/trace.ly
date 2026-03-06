@@ -40,10 +40,10 @@ function LerpMarker({
   children,
 }: {
   position: [number, number];
-  icon: any;
+  icon: L.DivIcon | L.Icon;
   children?: React.ReactNode;
 }) {
-  const markerRef = useRef<any>(null);
+  const markerRef = useRef<L.Marker>(null);
 
   useEffect(() => {
     if (!markerRef.current) return;
@@ -56,7 +56,7 @@ function LerpMarker({
       currentLat += (targetLat - currentLat) * 0.1;
       currentLng += (targetLng - currentLng) * 0.1;
 
-      markerRef.current.setLatLng([currentLat, currentLng]);
+      markerRef.current?.setLatLng([currentLat, currentLng]);
 
       if (
         Math.abs(targetLat - currentLat) > 0.00001 ||
@@ -114,7 +114,7 @@ export default function Map({ users, myLocation }: Props) {
       {!isAutoFollow && (
         <button
           onClick={() => setIsAutoFollow(true)}
-          className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[400] bg-white text-black px-4 py-2 rounded-full text-sm font-semibold shadow-md"
+          className="absolute top-4 left-1/2 transform -translate-x-1/2 z-400 bg-white text-black px-4 py-2 rounded-full text-sm font-semibold shadow-md"
         >
           Resume Auto-Follow
         </button>

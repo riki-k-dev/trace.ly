@@ -38,7 +38,7 @@ export default function RoomIdentity({
           </span>
         </div>
       </div>
-      <div className="bg-zinc-950 border border border-zinc-800 p-2.5 lg:p-3 font-mono text-zinc-300 text-sm tracking-widest text-center select-all">
+      <div className="bg-zinc-950 border border-zinc-800 p-2.5 lg:p-3 font-mono text-zinc-300 text-sm tracking-widest text-center select-all">
         {roomId}
       </div>
     </div>

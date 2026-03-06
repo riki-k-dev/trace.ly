@@ -10,7 +10,7 @@ export default function PocketMode({ onExit }: PocketModeProps) {
   const isLocked = useWakeLock();
 
   return (
-    <div className="absolute inset-0 z-[999] bg-black flex flex-col items-center justify-center p-6 text-center">
+    <div className="absolute inset-0 z-999 bg-black/20 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
       <div className="mb-8">
         <svg
           className="w-16 h-16 text-emerald-500 mx-auto mb-4 animate-pulse"

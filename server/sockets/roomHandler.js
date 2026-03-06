@@ -106,7 +106,7 @@ module.exports = function roomHandler(io, socket) {
     const rateLimitKey = `rate:loc:${clientIp}:${socket.clientId}`;
     const requests = await redis.incr(rateLimitKey);
     if (requests === 1) await redis.expire(rateLimitKey, 2);
-    else if (requests > 2) return;
+    else if (requests > 4) return;
 
     socket.to(roomId).emit("receive-location", {
       id: socket.clientId,
@@ -115,27 +115,7 @@ module.exports = function roomHandler(io, socket) {
     });
   });
 
-  const secureSignaling = async (target, event, data) => {
-    const [myRoom, targetRoom] = await Promise.all([
-      redis.get(`user:${socket.clientId}:room`),
-      redis.get(`user:${target}:room`),
-    ]);
-    if (myRoom && myRoom === targetRoom) {
-      socket.to(target).emit(event, { caller: socket.clientId, ...data });
-    }
-  };
-
   socket.join(socket.clientId);
-
-  socket.on("webrtc-offer", ({ target, sdp }) =>
-    secureSignaling(target, "webrtc-offer", { sdp }),
-  );
-  socket.on("webrtc-answer", ({ target, sdp }) =>
-    secureSignaling(target, "webrtc-answer", { sdp }),
-  );
-  socket.on("webrtc-ice-candidate", ({ target, candidate }) =>
-    secureSignaling(target, "webrtc-ice-candidate", { candidate }),
-  );
 
   socket.on("disconnect", async () => {
     clearInterval(presenceInterval);

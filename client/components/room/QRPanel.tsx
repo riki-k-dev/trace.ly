@@ -9,15 +9,14 @@ interface QRPanelProps {
 }
 
 export default function QRPanel({ roomId, isMobile }: QRPanelProps) {
-  const [roomUrl, setRoomUrl] = useState("");
-  const [deepLinkUrl, setDeepLinkUrl] = useState("");
+  const [roomUrl, setRoomUrl] = useState(`https://trace.ly/room/${roomId}`);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    const timer = setTimeout(() => {
       setRoomUrl(window.location.href);
-      setDeepLinkUrl(`tracely://room/${roomId}`);
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [roomId]);
 
   const handleShare = async () => {
@@ -63,7 +62,7 @@ export default function QRPanel({ roomId, isMobile }: QRPanelProps) {
         <div className="p-2.5 lg:p-3 bg-white border border-dashed border-zinc-300">
           <QRCodeCanvas
             id="qr-code"
-            value={roomUrl || "https://trace.ly"}
+            value={roomUrl}
             size={isMobile ? 140 : 180}
           />
         </div>

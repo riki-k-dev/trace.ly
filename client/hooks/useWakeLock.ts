@@ -1,17 +1,22 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 
+type NavigatorWithWakeLock = Navigator & {
+  wakeLock: {
+    request(type: "screen"): Promise<WakeLockSentinel>;
+  };
+};
+
 export function useWakeLock() {
   const [isLocked, setIsLocked] = useState(false);
-  const wakeLockRef = useRef<any>(null);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   useEffect(() => {
     const requestWakeLock = async () => {
       try {
         if ("wakeLock" in navigator) {
-          wakeLockRef.current = await (navigator as any).wakeLock.request(
-            "screen",
-          );
+          const nav = navigator as NavigatorWithWakeLock;
+          wakeLockRef.current = await nav.wakeLock.request("screen");
           setIsLocked(true);
 
           wakeLockRef.current.addEventListener("release", () => {

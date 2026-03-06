@@ -45,12 +45,12 @@ async function getRoom(roomId) {
 async function deleteRoom(roomId) {
   const users = await redis.smembers(`room:${roomId}:users`);
   const pipeline = redis.pipeline();
+
   pipeline.del(`room:${roomId}`);
   pipeline.del(`room:${roomId}:users`);
 
   users.forEach((userId) => {
     pipeline.del(`user:${userId}:room`);
-    pipeline.del(`presence:${userId}`);
   });
 
   await pipeline.exec();
@@ -86,7 +86,6 @@ async function removeUser(userId) {
     const pipeline = redis.pipeline();
     pipeline.srem(`room:${roomId}:users`, userId);
     pipeline.del(`user:${userId}:room`);
-    pipeline.del(`presence:${userId}`);
     await pipeline.exec();
     return roomId;
   }

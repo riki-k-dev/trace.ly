@@ -57,8 +57,8 @@ export default function RoomSidebar({
       className={`
         flex flex-col
         absolute bottom-0 left-0 w-full z-50 bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-800 shadow-[0_-20px_40px_rgba(0,0,0,0.6)]
-        h-fit max-h-[calc(100dvh-100px)] rounded-t-[2rem] pb-5
-        lg:relative lg:h-full lg:w-[360px] lg:bg-transparent lg:border-t-0 lg:rounded-none lg:shadow-none lg:z-auto lg:shrink-0 lg:pb-0
+        h-fit max-h-[calc(100dvh-100px)] rounded-t-4xl pb-5
+        lg:relative lg:h-full lg:w-90 lg:bg-transparent lg:border-t-0 lg:rounded-none lg:shadow-none lg:z-auto lg:shrink-0 lg:pb-0
       `}
     >
       <div
@@ -70,7 +70,7 @@ export default function RoomSidebar({
 
       <div className="w-full flex-1 flex flex-col gap-2.5 lg:gap-4 px-4 lg:px-0 overflow-y-auto hide-scrollbar pb-2 lg:pb-0">
         <RoomIdentity roomId={roomId} activeParticipants={activeParticipants} />
-        <RoomTimer expiryTime={expiryTime} />
+        <RoomTimer expiryTime={expiryTime} roomId={roomId} />
         <QRPanel roomId={roomId} isMobile={isMobile} />
       </div>
 
