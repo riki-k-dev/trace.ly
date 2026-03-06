@@ -13,23 +13,30 @@ interface RoomSidebarProps {
   activeParticipants: number;
 }
 
-export default function RoomSidebar({ roomId, expiryTime, activeParticipants }: RoomSidebarProps) {
+export default function RoomSidebar({
+  roomId,
+  expiryTime,
+  activeParticipants,
+}: RoomSidebarProps) {
   const controls = useAnimation();
   const [isExpanded, setIsExpanded] = useState(false);
-  const isMobile = useMobile(); // Hook use kiya
+  const isMobile = useMobile();
 
   useEffect(() => {
     if (!isMobile) {
-      controls.start({ y: 0 }); 
+      controls.start({ y: 0 });
     } else {
       controls.start({ y: isExpanded ? 0 : "calc(100% - 130px)" });
     }
   }, [isMobile, isExpanded, controls]);
 
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handleDragEnd = (
+    event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo,
+  ) => {
     if (!isMobile) return;
     const swipeThreshold = 50;
-    
+
     if (info.offset.y < -swipeThreshold || info.velocity.y < -500) {
       setIsExpanded(true);
     } else if (info.offset.y > swipeThreshold || info.velocity.y > 500) {
@@ -54,7 +61,7 @@ export default function RoomSidebar({ roomId, expiryTime, activeParticipants }: 
         lg:relative lg:h-full lg:w-[360px] lg:bg-transparent lg:border-t-0 lg:rounded-none lg:shadow-none lg:z-auto lg:shrink-0 lg:pb-0
       `}
     >
-      <div 
+      <div
         className="w-full flex justify-center pt-4 pb-2.5 lg:hidden cursor-pointer touch-none"
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -66,11 +73,15 @@ export default function RoomSidebar({ roomId, expiryTime, activeParticipants }: 
         <RoomTimer expiryTime={expiryTime} />
         <QRPanel roomId={roomId} isMobile={isMobile} />
       </div>
-      
-      <style dangerouslySetInnerHTML={{__html: `
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}} />
+      `,
+        }}
+      />
     </motion.aside>
   );
 }

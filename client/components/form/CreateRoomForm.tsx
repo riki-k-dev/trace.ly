@@ -3,28 +3,42 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import socket from "../../lib/socket";
+import { generateGroupKey } from "@/lib/crypto";
 
 export default function CreateRoomForm() {
   const [expiryHours, setExpiryHours] = useState<number>(1);
   const [isCreating, setIsCreating] = useState<boolean>(false);
+
+  const [tempKey, setTempKey] = useState<string | null>(null);
+
   const router = useRouter();
 
   useEffect(() => {
     socket.connect();
 
-    socket.on("room-created", ({ roomId }: { roomId: string }) => {
+    const handleRoomCreated = async ({ roomId }: { roomId: string }) => {
       setIsCreating(false);
+
+      if (tempKey) {
+        sessionStorage.setItem(`trace_key_${roomId}`, tempKey);
+      }
+
       router.push(`/room/${roomId}`);
-    });
+    };
+
+    socket.on("room-created", handleRoomCreated);
 
     return () => {
-      socket.off("room-created");
+      socket.off("room-created", handleRoomCreated);
     };
-  }, [router]);
+  }, [router, tempKey]);
 
-  const handleCreateRoom = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateRoom = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsCreating(true);
+
+    const secretKey = await generateGroupKey();
+    setTempKey(secretKey);
 
     socket.emit("create-room", { expiryHours });
   };
@@ -38,7 +52,6 @@ export default function CreateRoomForm() {
         >
           Session Duration
         </label>
-
         <div className="relative">
           <select
             id="expiry"
@@ -53,13 +66,12 @@ export default function CreateRoomForm() {
           </select>
         </div>
       </div>
-
       <button
         type="submit"
         disabled={isCreating}
-        className="w-full bg-white text-black font-semibold rounded-xl px-4 py-3.5 mt-2 hover:bg-zinc-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-white text-black font-semibold rounded-xl px-4 py-3.5 mt-2 hover:bg-zinc-200 active:scale-[0.98] transition-all disabled:opacity-50"
       >
-        {isCreating ? "Initializing..." : "Create Room"}
+        {isCreating ? "Initializing E2E Environment..." : "Create Secure Room"}
       </button>
     </form>
   );

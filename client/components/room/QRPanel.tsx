@@ -10,11 +10,15 @@ interface QRPanelProps {
 
 export default function QRPanel({ roomId, isMobile }: QRPanelProps) {
   const [roomUrl, setRoomUrl] = useState("");
+  const [deepLinkUrl, setDeepLinkUrl] = useState("");
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    setRoomUrl(typeof window !== "undefined" ? window.location.href : "");
-  }, []);
+    if (typeof window !== "undefined") {
+      setRoomUrl(window.location.href);
+      setDeepLinkUrl(`tracely://room/${roomId}`);
+    }
+  }, [roomId]);
 
   const handleShare = async () => {
     if (navigator.share) {
