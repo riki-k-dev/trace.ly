@@ -54,11 +54,22 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
 
   useEffect(() => {
     if (!roomId || typeof window === "undefined") return;
+    const hashKey = window.location.hash.replace("#", "");
+    const storedKey = sessionStorage.getItem(`trace_key_${roomId}`);
 
-    groupKey.current = sessionStorage.getItem(`trace_key_${roomId}`) || null;
-
-    if (window.location.hash) {
+    if (hashKey) {
+      groupKey.current = hashKey;
+      sessionStorage.setItem(`trace_key_${roomId}`, hashKey);
       window.history.replaceState(null, "", window.location.pathname);
+    } else if (storedKey) {
+      groupKey.current = storedKey;
+    } else {
+      setTimeout(() => {
+        setError(
+          "Secure connection key missing. Please ask for a valid invite link.",
+        );
+      }, 0);
+      return;
     }
 
     const handleConnect = () => {

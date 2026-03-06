@@ -9,13 +9,17 @@ interface QRPanelProps {
 }
 
 export default function QRPanel({ roomId, isMobile }: QRPanelProps) {
-  const [roomUrl, setRoomUrl] = useState(`https://trace.ly/room/${roomId}`);
+  const [roomUrl, setRoomUrl] = useState(
+    `https://tracely-rt.vercel.app/room/${roomId}`,
+  );
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setRoomUrl(window.location.href);
-    }, 0);
+      const key = sessionStorage.getItem(`trace_key_${roomId}`);
+      const fullUrl = `${window.location.origin}/room/${roomId}${key ? `#${key}` : ""}`;
+      setRoomUrl(fullUrl);
+    }, 100);
     return () => clearTimeout(timer);
   }, [roomId]);
 

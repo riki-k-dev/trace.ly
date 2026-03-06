@@ -21,9 +21,10 @@ export default function CreateRoomForm() {
 
       if (tempKey) {
         sessionStorage.setItem(`trace_key_${roomId}`, tempKey);
+        router.push(`/room/${roomId}#${tempKey}`);
+      } else {
+        router.push(`/room/${roomId}`);
       }
-
-      router.push(`/room/${roomId}`);
     };
 
     socket.on("room-created", handleRoomCreated);
