@@ -27,9 +27,12 @@ export default function RoomPage() {
   const roomId = params.id as string;
   const [pocketMode, setPocketMode] = useState(false);
 
-  const { error, myLocation, users, expiryTime } = useRoomSocket(roomId);
+  const { error, myLocation, users, expiryTime, clientId, creatorId } =
+    useRoomSocket(roomId);
 
   const activeParticipants = Object.keys(users).length + (myLocation ? 1 : 0);
+
+  const isCreator = clientId && creatorId ? clientId === creatorId : false;
 
   if (error) {
     return (
@@ -63,7 +66,7 @@ export default function RoomPage() {
       >
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-32 bg-white/2 blur-[100px] pointer-events-none rounded-none" />
 
-        <RoomHeader roomId={roomId} />
+        <RoomHeader roomId={roomId} isCreator={isCreator} />
 
         <main className="flex flex-1 overflow-hidden relative z-10 mt-3 lg:mt-0 lg:flex-row lg:gap-4">
           <div className="absolute inset-0 lg:relative lg:flex-1 bg-zinc-900/50 border-none lg:border lg:border-dashed border-zinc-800/80 rounded-none overflow-hidden z-0 lg:z-10 shadow-inner">

@@ -43,6 +43,7 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
   const [users, setUsers] = useState<Record<string, UserLocation>>({});
   const [expiryTime, setExpiryTime] = useState<number | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
+  const [creatorId, setCreatorId] = useState<string | null>(null);
 
   const locationBuffer = useRef<Record<string, UserLocation>>({});
   const lastSentLocation = useRef<{
@@ -99,6 +100,7 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
 
     socket.on("room-joined", (data) => {
       if (data?.expiryTime) setExpiryTime(data.expiryTime);
+      if (data?.creatorId) setCreatorId(data.creatorId);
       showToast("Secure session connected successfully!");
     });
 
@@ -227,5 +229,5 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
     };
   }, [roomId, router, isPocketMode, showToast]);
 
-  return { error, myLocation, users, expiryTime, clientId };
+  return { error, myLocation, users, expiryTime, clientId, creatorId };
 }

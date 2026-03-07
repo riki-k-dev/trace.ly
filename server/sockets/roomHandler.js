@@ -90,6 +90,17 @@ module.exports = function roomHandler(io, socket) {
     }
   });
 
+  socket.on("leave-room", async (roomId) => {
+    const removedRoomId = await removeUser(socket.clientId);
+    if (removedRoomId) {
+      socket.leave(removedRoomId);
+      io.to(removedRoomId).emit("peer-disconnected", {
+        userId: socket.clientId,
+      });
+      io.to(removedRoomId).emit("user-left", { userId: socket.clientId });
+    }
+  });
+
   socket.on("send-location", async ({ roomId, payload }) => {
     const userRoom = await redis.get(`user:${socket.clientId}:room`);
     if (userRoom !== roomId) return;

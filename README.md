@@ -19,7 +19,7 @@ The system uses WebSockets for real-time communication, Redis for scalable state
 * **Rate-Limited Messaging**: Server-side protections against abuse and spam location updates.
 * **Mobile-Optimized Interface**: Responsive UI with a draggable mobile sidebar and intuitive controls.
 
-# 🏗️ Architecture Overview
+## 🏗️ Architecture Overview
 
 ```
 Client (Next.js)
