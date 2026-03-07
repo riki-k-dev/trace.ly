@@ -2,6 +2,7 @@
 
 import socket from "@/lib/socket";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface RoomHeaderProps {
   roomId: string;
@@ -27,8 +28,8 @@ export default function RoomHeader({
     <div className="flex-none p-3 pb-0 lg:p-0 relative z-20">
       <header className="flex items-center justify-between px-4 py-3 bg-zinc-900/80 backdrop-blur-xl border border-dashed border-zinc-600/80 rounded-none shadow-lg">
         <div className="flex items-center gap-3.5">
-          <div className="w-9 h-9 bg-white text-black flex items-center justify-center rounded-none font-bold text-lg shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-            t
+          <div className="w-8 h-8 bg-white text-black flex items-center justify-center rounded font-bold text-lg shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+            <Image src="/logo.png" alt="trace.ly" width={56} height={56} />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-white hidden sm:block">
             trace<span className="text-zinc-500 font-normal">.ly</span>

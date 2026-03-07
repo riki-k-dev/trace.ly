@@ -2,8 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import socket from "../../lib/socket";
+import socket from "@/lib/socket";
 import { generateGroupKey } from "@/lib/crypto";
+import CustomSelect from "../ui/CustomSelect";
+
+const DURATION_OPTIONS = [
+  { label: "1 Hour", value: 1 },
+  { label: "6 Hours", value: 6 },
+  { label: "12 Hours", value: 12 },
+  { label: "24 Hours", value: 24 },
+];
 
 export default function CreateRoomForm() {
   const [expiryHours, setExpiryHours] = useState<number>(1);
@@ -17,7 +25,6 @@ export default function CreateRoomForm() {
 
     const handleRoomCreated = async ({ roomId }: { roomId: string }) => {
       setIsCreating(false);
-
       sessionStorage.setItem(`trace_creator_${roomId}`, "true");
 
       if (tempKey) {
@@ -46,61 +53,105 @@ export default function CreateRoomForm() {
   };
 
   return (
-    <form onSubmit={handleCreateRoom} className="w-full space-y-5">
-      <div className="space-y-1.5">
-        <label
-          htmlFor="expiry"
-          className="text-xs font-semibold text-zinc-500 uppercase tracking-widest ml-1"
-        >
-          Session Duration
-        </label>
-        <div className="relative">
-          <select
-            id="expiry"
+    <div className="flex flex-col h-full justify-between min-h-70">
+      <form onSubmit={handleCreateRoom} className="w-full space-y-6">
+        <div className="space-y-2">
+          <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest ml-1">
+            Session Duration
+          </label>
+          <CustomSelect
+            options={DURATION_OPTIONS}
             value={expiryHours}
-            onChange={(e) => setExpiryHours(Number(e.target.value))}
-            className="w-full bg-zinc-900/50 border border-white/10 text-zinc-200 rounded-xl px-4 py-3.5 outline-none focus:border-white/30 focus:bg-zinc-900 transition-all appearance-none cursor-pointer"
-          >
-            <option value={1}>1 Hour</option>
-            <option value={6}>6 Hours</option>
-            <option value={12}>12 Hours</option>
-            <option value={24}>24 Hours</option>
-          </select>
+            onChange={setExpiryHours}
+          />
         </div>
-      </div>
-      <button
-        type="submit"
-        disabled={isCreating}
-        className="w-full flex items-center justify-center bg-white text-black font-semibold rounded-xl px-4 py-3.5 mt-2 hover:bg-zinc-200 active:scale-[0.98] transition-all disabled:opacity-50"
-      >
-        {isCreating ? (
-          <>
+        <button
+          type="submit"
+          disabled={isCreating}
+          className="relative w-full flex items-center justify-center bg-white text-black font-bold text-sm md:text-base rounded-none px-4 py-4 overflow-hidden transition-all hover:bg-zinc-200 active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 group shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] border border-dashed border-zinc-300"
+        >
+          {isCreating ? (
+            <>
+              <svg
+                className="animate-spin -ml-1 mr-2 h-5 w-5 text-black"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Generating E2E Keys...
+            </>
+          ) : (
+            "Create Secure Session"
+          )}
+        </button>
+      </form>
+
+      <div className="mt-8 pt-5 border-t border-dashed border-zinc-700/80">
+        <ul className="space-y-3">
+          <li className="flex items-center gap-2.5 text-[10px] md:text-[11px] text-zinc-400 font-mono uppercase tracking-widest">
             <svg
-              className="animate-spin -ml-1 mr-2 h-5 w-5 text-black"
-              xmlns="http://www.w3.org/2000/svg"
+              className="w-3.5 h-3.5 text-emerald-500 shrink-0"
               fill="none"
               viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
               <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
-            Initializing E2E Environment...
-          </>
-        ) : (
-          "Create Secure Room"
-        )}
-      </button>
-    </form>
+            End-to-End Encrypted
+          </li>
+          <li className="flex items-center gap-2.5 text-[10px] md:text-[11px] text-zinc-400 font-mono uppercase tracking-widest">
+            <svg
+              className="w-3.5 h-3.5 text-emerald-500 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Auto-destructs on expiry
+          </li>
+          <li className="flex items-center gap-2.5 text-[10px] md:text-[11px] text-zinc-400 font-mono uppercase tracking-widest">
+            <svg
+              className="w-3.5 h-3.5 text-emerald-500 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
+            No user account required
+          </li>
+        </ul>
+      </div>
+    </div>
   );
 }

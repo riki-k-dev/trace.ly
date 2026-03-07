@@ -1,10 +1,63 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 
+export const viewport: Viewport = {
+  themeColor: "#09090b", 
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export const metadata: Metadata = {
-  title: "trace.ly | Realtime Tracker",
-  description: "Secure, real-time location sharing with QR codes.",
+  title: {
+    default: "trace.ly",
+    template: "%s | trace.ly",
+  },
+  description:
+    "End-to-end encrypted, real-time location sharing via temporary links. No user account required. Auto-destructs on expiry.",
+  keywords: [
+    "location sharing",
+    "real-time tracking",
+    "e2e encryption",
+    "privacy",
+    "temporary location",
+    "gps tracker",
+    "secure tracking",
+  ],
+  authors: [{ name: "trace.ly" }],
+  creator: "trace.ly",
+  metadataBase: new URL("https://tracely-rt.vercel.app"),
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "/",
+    title: "trace.ly",
+    description:
+      "End-to-end encrypted, real-time location sharing via temporary links. No user account required.",
+    siteName: "trace.ly",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "trace.ly - Secure Real-Time Location Sharing",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "trace.ly",
+    description:
+      "End-to-end encrypted, real-time location sharing via temporary links.",
+    images: ["/og-image.png"],
+  },
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon-16x16.png",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
