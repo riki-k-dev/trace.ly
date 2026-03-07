@@ -27,12 +27,10 @@ export default function RoomPage() {
   const roomId = params.id as string;
   const [pocketMode, setPocketMode] = useState(false);
 
-  const { error, myLocation, users, expiryTime, clientId, creatorId } =
+  const { error, myLocation, users, expiryTime, isCreator } =
     useRoomSocket(roomId);
 
   const activeParticipants = Object.keys(users).length + (myLocation ? 1 : 0);
-
-  const isCreator = clientId && creatorId ? clientId === creatorId : false;
 
   if (error) {
     return (

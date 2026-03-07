@@ -42,8 +42,8 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
   } | null>(null);
   const [users, setUsers] = useState<Record<string, UserLocation>>({});
   const [expiryTime, setExpiryTime] = useState<number | null>(null);
-  const [clientId, setClientId] = useState<string | null>(null);
-  const [creatorId, setCreatorId] = useState<string | null>(null);
+
+  const [isCreator, setIsCreator] = useState<boolean>(false);
 
   const locationBuffer = useRef<Record<string, UserLocation>>({});
   const lastSentLocation = useRef<{
@@ -83,11 +83,6 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
 
     socket.on("connect", handleConnect);
 
-    const handleSession = ({ clientId: id }: { clientId: string }) => {
-      setClientId(id);
-    };
-
-    socket.on("session", handleSession);
     socket.connect();
 
     const heartbeatInterval = setInterval(() => {
@@ -100,7 +95,9 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
 
     socket.on("room-joined", (data) => {
       if (data?.expiryTime) setExpiryTime(data.expiryTime);
-      if (data?.creatorId) setCreatorId(data.creatorId);
+
+      if (data?.isCreator) setIsCreator(true);
+
       showToast("Secure session connected successfully!");
     });
 
@@ -224,10 +221,9 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
       clearInterval(heartbeatInterval);
       if (watchId) navigator.geolocation.clearWatch(watchId);
       socket.off("connect", handleConnect);
-      socket.off("session", handleSession);
       socket.removeAllListeners();
     };
   }, [roomId, router, isPocketMode, showToast]);
 
-  return { error, myLocation, users, expiryTime, clientId, creatorId };
+  return { error, myLocation, users, expiryTime, isCreator };
 }

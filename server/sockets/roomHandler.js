@@ -72,10 +72,11 @@ module.exports = function roomHandler(io, socket) {
     socket.join(roomId);
 
     const existingUsers = await redis.smembers(`room:${roomId}:users`);
+
     socket.emit("room-joined", {
       expiryTime: room.expiryTime,
       existingUsers: existingUsers.filter((id) => id !== socket.clientId),
-      creatorId: room.creator,
+      isCreator: room.creator === socket.clientId,
     });
 
     socket.to(roomId).emit("user-joined", { userId: socket.clientId });
