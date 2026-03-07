@@ -71,10 +71,10 @@ export default function RoomPage() {
 
             <button
               onClick={() => setPocketMode(true)}
-              className="absolute top-4 right-4 z-400 bg-zinc-900/90 backdrop-blur border border-zinc-700 text-zinc-200 px-4 py-2 text-sm font-medium shadow-xl hover:bg-zinc-800 transition-colors flex items-center gap-2"
+              className="absolute top-4 right-4 z-400 bg-zinc-900/90 backdrop-blur border border-zinc-700 text-zinc-200 px-3 py-1.5 lg:px-4 lg:py-2 text-xs lg:text-sm font-medium rounded-none shadow-xl hover:bg-zinc-800 transition-colors flex items-center gap-1.5"
             >
               <svg
-                className="w-4 h-4"
+                className="w-3.5 h-3.5 lg:w-4 lg:h-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
