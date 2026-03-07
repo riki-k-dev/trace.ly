@@ -8,7 +8,6 @@ import { generateGroupKey } from "@/lib/crypto";
 export default function CreateRoomForm() {
   const [expiryHours, setExpiryHours] = useState<number>(1);
   const [isCreating, setIsCreating] = useState<boolean>(false);
-
   const [tempKey, setTempKey] = useState<string | null>(null);
 
   const router = useRouter();
@@ -18,6 +17,8 @@ export default function CreateRoomForm() {
 
     const handleRoomCreated = async ({ roomId }: { roomId: string }) => {
       setIsCreating(false);
+
+      sessionStorage.setItem(`trace_creator_${roomId}`, "true");
 
       if (tempKey) {
         sessionStorage.setItem(`trace_key_${roomId}`, tempKey);

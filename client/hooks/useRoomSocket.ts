@@ -43,7 +43,12 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
   const [users, setUsers] = useState<Record<string, UserLocation>>({});
   const [expiryTime, setExpiryTime] = useState<number | null>(null);
 
-  const [isCreator, setIsCreator] = useState<boolean>(false);
+  const [isCreator, setIsCreator] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem(`trace_creator_${roomId}`) === "true";
+    }
+    return false;
+  });
 
   const locationBuffer = useRef<Record<string, UserLocation>>({});
   const lastSentLocation = useRef<{
@@ -82,7 +87,6 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
     }
 
     socket.on("connect", handleConnect);
-
     socket.connect();
 
     const heartbeatInterval = setInterval(() => {
@@ -96,7 +100,10 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
     socket.on("room-joined", (data) => {
       if (data?.expiryTime) setExpiryTime(data.expiryTime);
 
-      if (data?.isCreator) setIsCreator(true);
+      if (data?.isCreator) {
+        setIsCreator(true);
+        sessionStorage.setItem(`trace_creator_${roomId}`, "true");
+      }
 
       showToast("Secure session connected successfully!");
     });
