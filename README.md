@@ -52,6 +52,7 @@ Encryption keys exist **only inside the browser**, ensuring true end-to-end encr
 * **Animations**: [Framer Motion](https://www.framer.com/motion/)
 * **Realtime Communication**: [Socket.IO Client](https://socket.io/)
 * **QR Code Generation**: [qrcode.react](https://github.com/zpao/qrcode.react)
+* **QR Code Scanner**: [html5-qrcode](https://github.com/mebjas/html5-qrcode)
 
 ### Backend
 
