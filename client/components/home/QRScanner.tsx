@@ -39,9 +39,12 @@ export default function QRScanner() {
       }
     };
 
-    startScanner();
+    const timeoutId = setTimeout(() => {
+      startScanner();
+    }, 400);
 
     return () => {
+      clearTimeout(timeoutId);
       if (scannerRef.current && scannerRef.current.isScanning) {
         scannerRef.current.stop().catch(console.error);
       }
