@@ -3,6 +3,21 @@ const { REDIS_URL, MAX_ROOM_SIZE } = require("../config/env");
 
 const redis = new Redis(REDIS_URL);
 
+const roomCache = new Map();
+const CACHE_TTL = 30 * 1000;
+
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [roomId, cached] of roomCache.entries()) {
+      if (now > cached.expiresAt) {
+        roomCache.delete(roomId);
+      }
+    }
+  },
+  5 * 60 * 1000,
+);
+
 const JOIN_ROOM_SCRIPT = `
   local current_size = redis.call('SCARD', KEYS[1])
   if current_size >= tonumber(ARGV[1]) then
@@ -29,20 +44,37 @@ async function createRoom(roomId, creatorId, expiryTime) {
 }
 
 async function getRoom(roomId) {
+  const now = Date.now();
+
+  const cachedRoom = roomCache.get(roomId);
+  if (cachedRoom && cachedRoom.expiresAt > now) {
+    return cachedRoom.data;
+  }
+
   const room = await redis.hgetall(`room:${roomId}`);
   if (!room || Object.keys(room).length === 0) return null;
 
-  if (Date.now() > parseInt(room.expiryTime, 10)) {
+  if (now > parseInt(room.expiryTime, 10)) {
     await deleteRoom(roomId);
     return null;
   }
-  return {
+
+  const roomData = {
     creator: room.creator,
     expiryTime: parseInt(room.expiryTime, 10),
   };
+
+  roomCache.set(roomId, {
+    data: roomData,
+    expiresAt: now + CACHE_TTL,
+  });
+
+  return roomData;
 }
 
 async function deleteRoom(roomId) {
+  roomCache.delete(roomId);
+
   const users = await redis.smembers(`room:${roomId}:users`);
   const pipeline = redis.pipeline();
 
@@ -93,7 +125,7 @@ async function removeUser(userId) {
 }
 
 async function updatePresence(userId) {
-  await redis.set(`presence:${userId}`, "active", "EX", 15);
+  await redis.set(`presence:${userId}`, "active", "EX", 45);
 }
 
 async function getRoomPresence(roomId) {

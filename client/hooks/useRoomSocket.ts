@@ -91,7 +91,7 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
 
     const heartbeatInterval = setInterval(() => {
       if (socket.connected) socket.emit("heartbeat");
-    }, 5000);
+    }, 20000);
 
     socket.on("error", (err) => {
       setError(err.message || "An error occurred.");
@@ -191,7 +191,7 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
               longitude,
             );
 
-            if (dist < 5 && timeDiff < 2000) return;
+            if (dist < 10 && timeDiff < 5000) return;
           }
 
           setMyLocation({ latitude, longitude });

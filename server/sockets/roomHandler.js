@@ -12,6 +12,10 @@ const {
   redis,
 } = require("../rooms/roomManager");
 
+const memoryRateLimits = new Map();
+
+setInterval(() => memoryRateLimits.clear(), 5 * 60 * 1000);
+
 module.exports = function roomHandler(io, socket) {
   const clientId = socket.handshake.auth?.clientId || crypto.randomUUID();
   socket.clientId = clientId;
@@ -26,7 +30,7 @@ module.exports = function roomHandler(io, socket) {
       const presence = await getRoomPresence(roomId);
       socket.emit("presence-sync", presence);
     }
-  }, 5000);
+  }, 20000);
 
   socket.on("heartbeat", async () => {
     await updatePresence(socket.clientId);
@@ -103,8 +107,22 @@ module.exports = function roomHandler(io, socket) {
   });
 
   socket.on("send-location", async ({ roomId, payload }) => {
-    const userRoom = await redis.get(`user:${socket.clientId}:room`);
-    if (userRoom !== roomId) return;
+    const now = Date.now();
+    const limitKey = `${clientIp}:${socket.clientId}`;
+    const limitRecord = memoryRateLimits.get(limitKey) || {
+      count: 0,
+      time: now,
+    };
+
+    if (now - limitRecord.time > 2000) {
+      limitRecord.count = 0;
+      limitRecord.time = now;
+    }
+
+    limitRecord.count++;
+    memoryRateLimits.set(limitKey, limitRecord);
+
+    if (limitRecord.count > 4) return;
 
     if (
       typeof payload !== "object" ||
@@ -115,10 +133,8 @@ module.exports = function roomHandler(io, socket) {
     )
       return;
 
-    const rateLimitKey = `rate:loc:${clientIp}:${socket.clientId}`;
-    const requests = await redis.incr(rateLimitKey);
-    if (requests === 1) await redis.expire(rateLimitKey, 2);
-    else if (requests > 4) return;
+    const userRoom = await redis.get(`user:${socket.clientId}:room`);
+    if (userRoom !== roomId) return;
 
     socket.to(roomId).emit("receive-location", {
       id: socket.clientId,

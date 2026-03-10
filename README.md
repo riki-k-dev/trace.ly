@@ -2,7 +2,7 @@
 
 **trace.ly** is a privacy-focused real-time location sharing platform designed for temporary tracking sessions. It enables users to create secure rooms, share live location through QR codes or invite links, and visualize participants on an interactive map — all while maintaining strong end-to-end encryption.
 
-The system uses WebSockets for real-time communication, Redis for scalable state management, and client-side cryptography to ensure location data remains private.
+The system uses WebSockets for real-time communication, a hybrid caching layer for ultra-fast performance, Redis for scalable state management, and client-side cryptography to ensure location data remains private.
 
 [![Hero Screenshot](public/heropage.png)](https://tracely-rt.vercel.app)
 
@@ -10,29 +10,33 @@ The system uses WebSockets for real-time communication, Redis for scalable state
 
 * **Real-Time Location Sharing**: Instantly broadcast and receive live location updates across all participants in a room.
 * **End-to-End Encryption**: Location payloads are encrypted with AES-GCM and signed using HMAC to prevent tampering.
+* **Hybrid Caching Layer**: Utilizes an in-memory Node.js cache in front of Redis to minimize database commands and achieve sub-millisecond room verifications.
+* **Zero-Latency Rate Limiting**: In-memory server-side protections to prevent abuse, spam location updates, and database overloading.
 * **QR Code Room Access**: Quickly invite participants by sharing a link or scanning a generated QR code.
 * **Interactive Map Tracking**: Smoothly animated location markers rendered using Leaflet with automatic map following.
 * **Session Expiry System**: Rooms automatically expire after a chosen duration (1–24 hours) for enhanced privacy.
 * **Pocket Mode**: Battery-saving mode that disables map rendering while continuing location broadcasts.
 * **Presence Detection**: Detect when participants go offline or disconnect from the session.
 * **Scalable Infrastructure**: Redis-powered room state management with Socket.IO clustering support.
-* **Rate-Limited Messaging**: Server-side protections against abuse and spam location updates.
 * **Mobile-Optimized Interface**: Responsive UI with a draggable mobile sidebar and intuitive controls.
 
 ## 🏗️ Architecture Overview
 
-```
+```text
 Client (Next.js)
       │
       │  encrypted location payloads
       ▼
-Socket.IO WebSocket Server
+Socket.IO WebSocket Server (Node.js)
+      ├── In-Memory Rate Limiter (Zero-latency DDoS protection)
+      ├── In-Memory Room Cache (Ultra-fast lookups)
       │
-      │
-Redis (Room State + Presence + Rate Limits)
+      ▼
+Redis (Persistent Room State + Cross-instance Presence)
       │
       ▼
 Broadcast encrypted payloads to room participants
+
 ```
 
 **Important design choice**
@@ -59,7 +63,8 @@ Encryption keys exist **only inside the browser**, ensuring true end-to-end encr
 * **Runtime**: [Node.js](https://nodejs.org/)
 * **Framework**: [Express](https://expressjs.com/)
 * **WebSockets**: [Socket.IO](https://socket.io/)
-* **Database / Cache**: [Redis](https://redis.io/) with [ioredis](https://github.com/redis/ioredis)
+* **Database**: [Redis](https://redis.io/) with [ioredis](https://github.com/redis/ioredis)
+* **Caching Layer**: Node.js In-Memory `Map()` caching for rapid rate-limiting and room state retrieval.
 * **Scaling Adapter**: Socket.IO Redis Adapter
 * **Security**: Helmet + Express Rate Limit
 
@@ -76,8 +81,9 @@ Follow these steps to run the project locally.
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/tracely.git
-cd tracely
+git clone https://github.com/riki-k-dev/trace.ly.git
+cd trace.ly
+
 ```
 
 ### 2. Install dependencies
@@ -87,13 +93,15 @@ Install client dependencies:
 ```bash
 cd client
 pnpm install
+
 ```
 
 Install server dependencies:
 
 ```bash
-cd ../server
+cd server
 pnpm install
+
 ```
 
 ### 3. Configure environment variables
@@ -104,6 +112,7 @@ Create `.env` files.
 
 ```
 NEXT_PUBLIC_SOCKET_URL=http://localhost:5000
+
 ```
 
 **Server**
@@ -112,6 +121,7 @@ NEXT_PUBLIC_SOCKET_URL=http://localhost:5000
 PORT=5000
 CLIENT_URL=http://localhost:3000
 REDIS_URL=redis://localhost:6379
+
 ```
 
 ### 4. Start Redis
@@ -120,6 +130,7 @@ Make sure Redis is running locally.
 
 ```bash
 redis-server
+
 ```
 
 ### 5. Start the backend server
@@ -127,6 +138,7 @@ redis-server
 ```bash
 cd server
 pnpm run dev
+
 ```
 
 ### 6. Start the frontend
@@ -134,6 +146,7 @@ pnpm run dev
 ```bash
 cd client
 pnpm run dev
+
 ```
 
 ### 7. Open the application
@@ -142,6 +155,7 @@ Visit:
 
 ```
 http://localhost:3000
+
 ```
 
 Create a room and share the generated QR code or link to begin tracking.
@@ -170,6 +184,7 @@ tracely/
 │   └── server.js           # Express + Socket.IO entry
 │
 └── README.md
+
 ```
 
 ## 🔐 Security Design
