@@ -6,6 +6,7 @@ const {
   getRoom,
   deleteRoom,
   addUser,
+  getUserName,
   removeUser,
   updatePresence,
   getRoomPresence,
@@ -19,7 +20,6 @@ setInterval(() => memoryRateLimits.clear(), 5 * 60 * 1000);
 module.exports = function roomHandler(io, socket) {
   const clientId = socket.handshake.auth?.clientId || crypto.randomUUID();
   socket.clientId = clientId;
-
   const clientIp = socket.handshake.address || "unknown_ip";
 
   socket.emit("session", { clientId });
@@ -36,55 +36,156 @@ module.exports = function roomHandler(io, socket) {
     await updatePresence(socket.clientId);
   });
 
-  socket.on("create-room", async ({ expiryHours }) => {
-    const existingRoom = await redis.get(`user:${socket.clientId}:room`);
-    if (existingRoom) {
-      return socket.emit("error", { message: "You are already in a room." });
-    }
+  socket.on(
+    "create-room",
+    async ({ expiryHours, username, pin, requiresApproval }) => {
+      const existingRoom = await redis.get(`user:${socket.clientId}:room`);
+      if (existingRoom) {
+        return socket.emit("error", { message: "You are already in a room." });
+      }
 
-    const roomId = await generateRoomId(redis);
-    const safeExpiry =
-      typeof expiryHours === "number" && expiryHours > 0 && expiryHours <= 24
-        ? expiryHours
-        : 1;
-    const expiryTime = Date.now() + safeExpiry * 60 * 60 * 1000;
+      const roomId = await generateRoomId(redis);
+      const safeExpiry =
+        typeof expiryHours === "number" && expiryHours > 0 && expiryHours <= 24
+          ? expiryHours
+          : 1;
+      const expiryTime = Date.now() + safeExpiry * 60 * 60 * 1000;
 
-    await createRoom(roomId, socket.clientId, expiryTime);
+      const safePin = String(pin || "").trim();
+      const pinHash = safePin
+        ? crypto.createHash("sha256").update(safePin).digest("hex")
+        : "";
 
-    socket.join(roomId);
-    socket.emit("room-created", { roomId, expiryTime });
+      await createRoom(
+        roomId,
+        socket.clientId,
+        expiryTime,
+        pinHash,
+        requiresApproval,
+        username || "Creator",
+      );
+
+      socket.join(roomId);
+      socket.emit("room-created", { roomId, expiryTime });
+    },
+  );
+
+  socket.on("check-room", async (roomId) => {
+    const room = await getRoom(roomId);
+    if (!room) return socket.emit("room-not-found");
+    socket.emit("room-info", {
+      hasPin: room.hasPin,
+      requiresApproval: room.requiresApproval,
+    });
   });
 
-  socket.on("join-room", async ({ roomId }) => {
+  socket.on("request-join", async ({ roomId, username, pin }) => {
     const existingRoom = await redis.get(`user:${socket.clientId}:room`);
     if (existingRoom && existingRoom !== roomId) {
-      return socket.emit("error", {
+      return socket.emit("join-error", {
         message: "Leave your current room first.",
       });
     }
 
     const room = await getRoom(roomId);
     if (!room)
-      return socket.emit("error", { message: "Room not found or expired." });
+      return socket.emit("join-error", {
+        message: "Room not found or expired.",
+      });
 
-    try {
-      await addUser(roomId, socket.clientId);
-    } catch (error) {
-      return socket.emit("error", { message: error.message });
+    const isCreator = room.creator === socket.clientId;
+
+    const isRejected = await redis.sismember(
+      `room:${roomId}:rejected`,
+      socket.clientId,
+    );
+    if (!isCreator && isRejected) {
+      return socket.emit("join-rejected");
     }
 
-    socket.join(roomId);
+    const isAlreadyApproved = await redis.sismember(
+      `room:${roomId}:approved`,
+      socket.clientId,
+    );
+
+    if (!isCreator && !isAlreadyApproved) {
+      if (room.hasPin) {
+        const safeSubmittedPin = String(pin || "").trim();
+        const hash = crypto
+          .createHash("sha256")
+          .update(safeSubmittedPin)
+          .digest("hex");
+        if (hash !== room.pinHash) {
+          return socket.emit("join-error", { message: "Invalid Room PIN." });
+        }
+      }
+
+      if (room.requiresApproval) {
+        io.to(room.creator).emit("join-request", {
+          userId: socket.id,
+          username,
+        });
+        return socket.emit("join-pending");
+      }
+    }
+
+    await redis.sadd(`room:${roomId}:approved`, socket.clientId);
+    await redis.expire(`room:${roomId}:approved`, 24 * 60 * 60);
+
+    await performJoin(socket, roomId, username, room);
+  });
+
+  socket.on("resolve-join", async ({ roomId, userId, username, approved }) => {
+    const room = await getRoom(roomId);
+    if (!room || room.creator !== socket.clientId) return;
+
+    const targetSockets = await io.sockets.in(userId).fetchSockets();
+    if (targetSockets.length > 0) {
+      const targetClient = targetSockets[0].clientId;
+
+      if (approved) {
+        await redis.sadd(`room:${roomId}:approved`, targetClient);
+        await redis.expire(`room:${roomId}:approved`, 24 * 60 * 60);
+        await performJoin(targetSockets[0], roomId, username, room);
+      } else {
+        await redis.sadd(`room:${roomId}:rejected`, targetClient);
+        await redis.expire(`room:${roomId}:rejected`, 24 * 60 * 60);
+        io.to(userId).emit("join-rejected");
+      }
+    } else {
+      io.to(userId).emit("join-rejected");
+    }
+  });
+
+  async function performJoin(targetSocket, roomId, username, room) {
+    try {
+      await addUser(roomId, targetSocket.clientId, username);
+    } catch (error) {
+      return targetSocket.emit("join-error", { message: error.message });
+    }
+
+    targetSocket.join(roomId);
 
     const existingUsers = await redis.smembers(`room:${roomId}:users`);
+    const existingUsersWithNames = [];
 
-    socket.emit("room-joined", {
+    for (const id of existingUsers) {
+      if (id !== targetSocket.clientId) {
+        const name = await getUserName(id);
+        existingUsersWithNames.push({ id, username: name });
+      }
+    }
+
+    targetSocket.emit("room-joined", {
       expiryTime: room.expiryTime,
-      existingUsers: existingUsers.filter((id) => id !== socket.clientId),
-      isCreator: room.creator === socket.clientId,
+      existingUsers: existingUsersWithNames,
+      isCreator: room.creator === targetSocket.clientId,
     });
 
-    socket.to(roomId).emit("user-joined", { userId: socket.clientId });
-  });
+    targetSocket
+      .to(roomId)
+      .emit("user-joined", { userId: targetSocket.clientId, username });
+  }
 
   socket.on("end-room", async (roomId) => {
     const room = await getRoom(roomId);
@@ -121,7 +222,6 @@ module.exports = function roomHandler(io, socket) {
 
     limitRecord.count++;
     memoryRateLimits.set(limitKey, limitRecord);
-
     if (limitRecord.count > 4) return;
 
     if (

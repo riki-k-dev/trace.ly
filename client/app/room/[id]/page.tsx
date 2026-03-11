@@ -6,6 +6,8 @@ import dynamic from "next/dynamic";
 import RoomHeader from "@/components/room/RoomHeader";
 import RoomSidebar from "@/components/room/RoomSidebar";
 import PocketMode from "@/components/room/PocketMode";
+import JoinRoomForm from "@/components/room/JoinRoomForm";
+import JoinRequests from "@/components/room/JoinRequests";
 import { useRoomSocket } from "@/hooks/useRoomSocket";
 
 const Map = dynamic(() => import("@/components/map/Map"), {
@@ -15,7 +17,7 @@ const Map = dynamic(() => import("@/components/map/Map"), {
       <div className="flex flex-col items-center gap-3">
         <div className="w-8 h-8 border-4 border-zinc-700 border-t-white rounded-none animate-spin" />
         <p className="text-sm font-medium tracking-wide">
-          Connecting to satellites...
+          Initializing secure connection...
         </p>
       </div>
     </div>
@@ -27,17 +29,97 @@ export default function RoomPage() {
   const roomId = params.id as string;
   const [pocketMode, setPocketMode] = useState(false);
 
-  const { error, myLocation, users, expiryTime, isCreator } =
-    useRoomSocket(roomId);
+  const {
+    joinState,
+    roomRequirements,
+    error,
+    myLocation,
+    users,
+    expiryTime,
+    isCreator,
+    requestJoin,
+    pendingRequests,
+    resolveJoinRequest,
+  } = useRoomSocket(roomId);
 
   const activeParticipants = Object.keys(users).length + (myLocation ? 1 : 0);
 
-  if (error) {
+  if (joinState === "checking" || joinState === "requesting") {
     return (
-      <div className="flex items-center justify-center min-h-screen text-red-400 bg-zinc-950 font-medium">
-        <div className="bg-red-500/10 px-6 py-4 rounded-none border border-dashed border-red-500/20 flex items-center gap-3">
+      <div className="flex flex-col h-screen items-center justify-center bg-zinc-950 text-zinc-400 space-y-4">
+        <div className="w-10 h-10 border-4 border-zinc-800 border-t-emerald-500 rounded-full animate-spin"></div>
+        <p className="text-sm font-mono tracking-widest uppercase">
+          {joinState === "checking" ? "Verifying Room..." : "Authenticating..."}
+        </p>
+      </div>
+    );
+  }
+
+  if (joinState === "need_info") {
+    return (
+      <JoinRoomForm requirements={roomRequirements} onSubmit={requestJoin} />
+    );
+  }
+
+  if (joinState === "pending_approval") {
+    return (
+      <div className="flex flex-col h-screen items-center justify-center bg-zinc-950 text-zinc-300 px-6 text-center space-y-6">
+        <div className="w-16 h-16 bg-amber-500/10 border border-dashed border-amber-500/30 flex items-center justify-center mb-4">
           <svg
-            className="w-6 h-6"
+            className="w-8 h-8 text-amber-500 animate-pulse"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+            />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold">Waiting for Host</h2>
+        <p className="text-sm text-zinc-500 max-w-sm">
+          This room requires manual approval. The host has been notified of your
+          request.
+        </p>
+      </div>
+    );
+  }
+
+  if (joinState === "rejected") {
+    return (
+      <div className="flex flex-col h-screen items-center justify-center bg-zinc-950 text-red-400 px-6 text-center space-y-6">
+        <div className="w-16 h-16 bg-red-500/10 border border-dashed border-red-500/30 flex items-center justify-center mb-4">
+          <svg
+            className="w-8 h-8 text-red-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold text-white">Request Declined</h2>
+        <p className="text-sm text-zinc-500 max-w-sm">
+          The host has rejected your request to join this session.
+        </p>
+      </div>
+    );
+  }
+
+  if (joinState === "error" || error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-red-400 bg-zinc-950 font-medium px-4">
+        <div className="bg-red-500/10 px-6 py-4 rounded-none border border-dashed border-red-500/20 flex flex-col items-center gap-3 text-center">
+          <svg
+            className="w-8 h-8 text-red-500"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -68,11 +150,18 @@ export default function RoomPage() {
 
         <main className="flex flex-1 overflow-hidden relative z-10 mt-3 lg:mt-0 lg:flex-row lg:gap-4">
           <div className="absolute inset-0 lg:relative lg:flex-1 bg-zinc-900/50 border-none lg:border lg:border-dashed border-zinc-800/80 rounded-none overflow-hidden z-0 lg:z-10 shadow-inner">
+            {isCreator && (
+              <JoinRequests
+                requests={pendingRequests}
+                onResolve={resolveJoinRequest}
+              />
+            )}
+
             <Map users={users} myLocation={myLocation} />
 
             <button
               onClick={() => setPocketMode(true)}
-              className="absolute top-4 right-4 z-400 bg-zinc-900/90 backdrop-blur border border-zinc-700 text-zinc-200 px-3 py-1.5 lg:px-4 lg:py-2 text-xs lg:text-sm font-medium rounded-none shadow-xl hover:bg-zinc-800 transition-colors flex items-center gap-1.5"
+              className="absolute top-4 left-4 z-400 bg-zinc-900/90 backdrop-blur border border-zinc-700 text-zinc-200 px-3 py-1.5 lg:px-4 lg:py-2 text-xs lg:text-sm font-medium rounded-none shadow-xl hover:bg-zinc-800 transition-colors flex items-center gap-1.5"
             >
               <svg
                 className="w-3.5 h-3.5 lg:w-4 lg:h-4"

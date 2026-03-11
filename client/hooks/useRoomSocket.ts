@@ -8,10 +8,25 @@ import { useToast } from "@/components/ui/ToastProvider";
 
 export interface UserLocation {
   id: string;
+  username?: string;
   latitude: number;
   longitude: number;
   timestamp?: number;
   isOffline?: boolean;
+}
+
+export type JoinState =
+  | "checking"
+  | "need_info"
+  | "requesting"
+  | "pending_approval"
+  | "joined"
+  | "rejected"
+  | "error";
+
+export interface JoinRequest {
+  userId: string;
+  username: string;
 }
 
 function getDistanceInMeters(
@@ -35,13 +50,21 @@ function getDistanceInMeters(
 export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
   const router = useRouter();
   const { showToast } = useToast();
+
+  const [joinState, setJoinState] = useState<JoinState>("checking");
+  const [roomRequirements, setRoomRequirements] = useState<{
+    hasPin: boolean;
+    requiresApproval: boolean;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
   const [myLocation, setMyLocation] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
   const [users, setUsers] = useState<Record<string, UserLocation>>({});
   const [expiryTime, setExpiryTime] = useState<number | null>(null);
+  const [pendingRequests, setPendingRequests] = useState<JoinRequest[]>([]);
 
   const [isCreator, setIsCreator] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
@@ -60,6 +83,7 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
 
   useEffect(() => {
     if (!roomId || typeof window === "undefined") return;
+
     const hashKey = window.location.hash.replace("#", "");
     const storedKey = sessionStorage.getItem(`trace_key_${roomId}`);
 
@@ -74,58 +98,131 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
         setError(
           "Secure connection key missing. Please ask for a valid invite link.",
         );
+        setJoinState("error");
       }, 0);
       return;
     }
 
+    if (!socket.connected) socket.connect();
+
     const handleConnect = () => {
-      socket.emit("join-room", { roomId });
+      if (joinState === "checking" || joinState === "error") {
+        socket.emit("check-room", roomId);
+      }
     };
 
-    if (socket.connected) {
-      handleConnect();
+    if (socket.connected && joinState === "checking") {
+      socket.emit("check-room", roomId);
     }
-
     socket.on("connect", handleConnect);
-    socket.connect();
 
-    const heartbeatInterval = setInterval(() => {
-      if (socket.connected) socket.emit("heartbeat");
-    }, 20000);
+    socket.on("room-not-found", () => {
+      setError("This room does not exist or has expired.");
+      setJoinState("error");
+    });
 
-    socket.on("error", (err) => {
-      setError(err.message || "An error occurred.");
+    socket.on("room-info", (info) => {
+      setRoomRequirements(info);
+      const isCreatorSession =
+        sessionStorage.getItem(`trace_creator_${roomId}`) === "true";
+      const savedUserStr = sessionStorage.getItem(`trace_user_${roomId}`);
+
+      if (isCreatorSession) {
+        let creatorName = "Creator";
+        if (savedUserStr) {
+          try {
+            creatorName = JSON.parse(savedUserStr).username;
+          } catch (e) {}
+        }
+        socket.emit("request-join", { roomId, username: creatorName, pin: "" });
+        setJoinState("requesting");
+      } else if (savedUserStr) {
+        try {
+          const { username, pin } = JSON.parse(savedUserStr);
+          socket.emit("request-join", { roomId, username, pin });
+          setJoinState("requesting");
+        } catch (e) {
+          setJoinState("need_info");
+        }
+      } else {
+        setJoinState("need_info");
+      }
+    });
+
+    socket.on("join-error", (err) => {
+      sessionStorage.removeItem(`trace_user_${roomId}`);
+      setError(err.message || "Could not join room.");
+      setJoinState("error");
+      showToast(err.message || "Failed to join", "error");
+    });
+
+    socket.on("join-pending", () => {
+      setJoinState("pending_approval");
+    });
+
+    socket.on("join-rejected", () => {
+      sessionStorage.removeItem(`trace_user_${roomId}`);
+      setJoinState("rejected");
     });
 
     socket.on("room-joined", (data) => {
+      setJoinState("joined");
       if (data?.expiryTime) setExpiryTime(data.expiryTime);
-
       if (data?.isCreator) {
         setIsCreator(true);
         sessionStorage.setItem(`trace_creator_${roomId}`, "true");
       }
 
+      const initialUsers: Record<string, UserLocation> = {};
+      if (data?.existingUsers) {
+        data.existingUsers.forEach((u: { id: string; username: string }) => {
+          initialUsers[u.id] = {
+            id: u.id,
+            latitude: 0,
+            longitude: 0,
+            username: u.username,
+            isOffline: true,
+          };
+        });
+      }
+      setUsers(initialUsers);
       showToast("Secure session connected successfully!");
     });
 
-    socket.on("user-joined", () => {
-      showToast("A new user joined the room");
+    socket.on("join-request", (request: JoinRequest) => {
+      setPendingRequests((prev) => {
+        if (prev.some((r) => r.userId === request.userId)) return prev;
+        return [...prev, request];
+      });
+      showToast(`${request.username} is asking to join.`, "warning");
+    });
+
+    socket.on("user-joined", ({ userId, username }) => {
+      showToast(`${username} joined the room`);
+      setUsers((prev) => ({
+        ...prev,
+        [userId]: {
+          id: userId,
+          username,
+          latitude: 0,
+          longitude: 0,
+          isOffline: false,
+        },
+      }));
     });
 
     socket.on("presence-sync", (presenceDict: Record<string, boolean>) => {
       setUsers((prev) => {
         const updated = { ...prev };
         Object.keys(presenceDict).forEach((id) => {
-          if (updated[id]) {
-            updated[id].isOffline = !presenceDict[id];
-          }
+          if (updated[id]) updated[id].isOffline = !presenceDict[id];
         });
         return updated;
       });
     });
 
     socket.on("receive-location", async ({ id, payload, timestamp }) => {
-      if (!groupKey.current) return;
+      if (!groupKey.current || joinState !== "joined") return;
       try {
         const decrypted = await decryptAndVerifyPayload(
           groupKey.current,
@@ -147,7 +244,7 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
     socket.on("peer-disconnected", ({ userId }) => {
       setUsers((prev) => {
         const updated = { ...prev };
-        delete updated[userId];
+        if (updated[userId]) updated[userId].isOffline = true;
         return updated;
       });
     });
@@ -166,15 +263,20 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
     });
 
     const renderLoop = setInterval(() => {
-      setUsers((prev) => {
-        const updated = { ...prev, ...locationBuffer.current };
-        locationBuffer.current = {};
-        return updated;
-      });
+      if (joinState === "joined") {
+        setUsers((prev) => {
+          const updated = { ...prev };
+          Object.keys(locationBuffer.current).forEach((id) => {
+            updated[id] = { ...updated[id], ...locationBuffer.current[id] };
+          });
+          locationBuffer.current = {};
+          return updated;
+        });
+      }
     }, 1000);
 
     let watchId: number;
-    if (navigator.geolocation) {
+    if (navigator.geolocation && joinState === "joined") {
       watchId = navigator.geolocation.watchPosition(
         async (position) => {
           if (!groupKey.current) return;
@@ -190,7 +292,6 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
               latitude,
               longitude,
             );
-
             if (dist < 10 && timeDiff < 5000) return;
           }
 
@@ -203,12 +304,8 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
 
           const encryptedPayload = await encryptAndSignPayload(
             groupKey.current,
-            {
-              latitude,
-              longitude,
-            },
+            { latitude, longitude },
           );
-
           if (!encryptedPayload) return;
 
           if (socket.connected) {
@@ -223,6 +320,10 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
       );
     }
 
+    const heartbeatInterval = setInterval(() => {
+      if (socket.connected && joinState === "joined") socket.emit("heartbeat");
+    }, 20000);
+
     return () => {
       clearInterval(renderLoop);
       clearInterval(heartbeatInterval);
@@ -230,7 +331,36 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
       socket.off("connect", handleConnect);
       socket.removeAllListeners();
     };
-  }, [roomId, router, isPocketMode, showToast]);
+  }, [roomId, router, isPocketMode, showToast, joinState]);
 
-  return { error, myLocation, users, expiryTime, isCreator };
+  const requestJoin = (username: string, pin: string) => {
+    setJoinState("requesting");
+    sessionStorage.setItem(
+      `trace_user_${roomId}`,
+      JSON.stringify({ username, pin }),
+    );
+    socket.emit("request-join", { roomId, username, pin });
+  };
+
+  const resolveJoinRequest = (
+    userId: string,
+    username: string,
+    approved: boolean,
+  ) => {
+    socket.emit("resolve-join", { roomId, userId, username, approved });
+    setPendingRequests((prev) => prev.filter((req) => req.userId !== userId));
+  };
+
+  return {
+    joinState,
+    roomRequirements,
+    error,
+    myLocation,
+    users,
+    expiryTime,
+    isCreator,
+    requestJoin,
+    pendingRequests,
+    resolveJoinRequest,
+  };
 }

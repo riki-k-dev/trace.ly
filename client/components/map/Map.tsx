@@ -24,6 +24,7 @@ const createColoredIcon = (color: string) => {
 
 interface UserLocation {
   id: string;
+  username?: string;
   latitude: number;
   longitude: number;
   isOffline?: boolean;
@@ -126,6 +127,7 @@ export default function Map({ users, myLocation }: Props) {
         zoomControl={false}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
         {myLocation && (
           <MapUpdater
             center={[myLocation.latitude, myLocation.longitude]}
@@ -138,24 +140,31 @@ export default function Map({ users, myLocation }: Props) {
             position={[myLocation.latitude, myLocation.longitude]}
             icon={createColoredIcon("#3b82f6")}
           >
-            <Popup>You</Popup>
+            <Popup>
+              <strong>You</strong>
+            </Popup>
           </LerpMarker>
         )}
 
-        {Object.values(users).map((user) => (
-          <LerpMarker
-            key={user.id}
-            position={[user.latitude, user.longitude]}
-            icon={createColoredIcon(
-              user.isOffline ? "#6b7280" : stringToColor(user.id),
-            )}
-          >
-            <Popup>
-              {user.isOffline ? "Offline" : "Active"}: {user.id.substring(0, 5)}
-              ...
-            </Popup>
-          </LerpMarker>
-        ))}
+        {Object.values(users).map((user) => {
+          const displayName = user.username || user.id.substring(0, 5);
+          return (
+            <LerpMarker
+              key={user.id}
+              position={[user.latitude, user.longitude]}
+              icon={createColoredIcon(
+                user.isOffline ? "#6b7280" : stringToColor(displayName),
+              )}
+            >
+              <Popup>
+                <strong>{displayName}</strong> <br />
+                <span className="text-xs text-zinc-500">
+                  {user.isOffline ? "Offline" : "Active"}
+                </span>
+              </Popup>
+            </LerpMarker>
+          );
+        })}
       </MapContainer>
     </div>
   );

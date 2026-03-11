@@ -27,7 +27,14 @@ const JOIN_ROOM_SCRIPT = `
   return 1
 `;
 
-async function createRoom(roomId, creatorId, expiryTime) {
+async function createRoom(
+  roomId,
+  creatorId,
+  expiryTime,
+  pinHash = "",
+  requiresApproval = false,
+  creatorUsername = "Creator",
+) {
   const ttlSeconds = Math.ceil((expiryTime - Date.now()) / 1000);
   if (ttlSeconds <= 0) return false;
 
@@ -35,11 +42,13 @@ async function createRoom(roomId, creatorId, expiryTime) {
   pipeline.hset(`room:${roomId}`, {
     creator: creatorId,
     expiryTime: expiryTime.toString(),
+    pinHash,
+    requiresApproval: requiresApproval ? "true" : "false",
   });
   pipeline.expire(`room:${roomId}`, ttlSeconds);
   await pipeline.exec();
 
-  await addUser(roomId, creatorId);
+  await addUser(roomId, creatorId, creatorUsername);
   return true;
 }
 
@@ -62,6 +71,9 @@ async function getRoom(roomId) {
   const roomData = {
     creator: room.creator,
     expiryTime: parseInt(room.expiryTime, 10),
+    hasPin: !!room.pinHash,
+    pinHash: room.pinHash || "",
+    requiresApproval: room.requiresApproval === "true",
   };
 
   roomCache.set(roomId, {
@@ -83,12 +95,13 @@ async function deleteRoom(roomId) {
 
   users.forEach((userId) => {
     pipeline.del(`user:${userId}:room`);
+    pipeline.del(`user:${userId}:name`);
   });
 
   await pipeline.exec();
 }
 
-async function addUser(roomId, userId) {
+async function addUser(roomId, userId, username = "Unknown") {
   const roomTtl = await redis.ttl(`room:${roomId}`);
   const ttl = roomTtl > 0 ? roomTtl : 3600;
 
@@ -107,9 +120,15 @@ async function addUser(roomId, userId) {
   const pipeline = redis.pipeline();
   pipeline.expire(`room:${roomId}:users`, ttl);
   pipeline.set(`user:${userId}:room`, roomId, "EX", ttl);
+  pipeline.set(`user:${userId}:name`, username, "EX", ttl);
   await pipeline.exec();
 
   await updatePresence(userId);
+}
+
+async function getUserName(userId) {
+  const name = await redis.get(`user:${userId}:name`);
+  return name || userId.substring(0, 5);
 }
 
 async function removeUser(userId) {
@@ -118,6 +137,7 @@ async function removeUser(userId) {
     const pipeline = redis.pipeline();
     pipeline.srem(`room:${roomId}:users`, userId);
     pipeline.del(`user:${userId}:room`);
+    pipeline.del(`user:${userId}:name`);
     await pipeline.exec();
     return roomId;
   }
@@ -148,6 +168,7 @@ module.exports = {
   getRoom,
   deleteRoom,
   addUser,
+  getUserName,
   removeUser,
   updatePresence,
   getRoomPresence,
