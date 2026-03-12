@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+import PWARegister from "@/components/PWARegister";
 
 export const viewport: Viewport = {
-  themeColor: "#09090b", 
+  themeColor: "#09090b",
   colorScheme: "dark",
   width: "device-width",
   initialScale: 1,
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
   },
   description:
     "End-to-end encrypted, real-time location sharing via temporary links. No user account required. Auto-destructs on expiry.",
+  manifest: "/manifest.json",
   keywords: [
     "location sharing",
     "real-time tracking",
@@ -25,6 +27,7 @@ export const metadata: Metadata = {
     "temporary location",
     "gps tracker",
     "secure tracking",
+    "pwa",
   ],
   authors: [{ name: "trace.ly" }],
   creator: "trace.ly",
@@ -67,7 +70,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent"
+        />
+        <meta name="apple-mobile-web-app-title" content="trace.ly" />
+      </head>
       <body className="bg-zinc-950 text-zinc-50 min-h-screen font-sans antialiased selection:bg-white selection:text-black">
+        <PWARegister />
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
