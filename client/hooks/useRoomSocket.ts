@@ -80,6 +80,7 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
     time: number;
   } | null>(null);
   const groupKey = useRef<string | null>(null);
+  const workerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
     if (!roomId || typeof window === "undefined") return;
@@ -132,7 +133,7 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
         if (savedUserStr) {
           try {
             creatorName = JSON.parse(savedUserStr).username;
-          } catch (e) {}
+          } catch {}
         }
         socket.emit("request-join", { roomId, username: creatorName, pin: "" });
         setJoinState("requesting");
@@ -141,7 +142,7 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
           const { username, pin } = JSON.parse(savedUserStr);
           socket.emit("request-join", { roomId, username, pin });
           setJoinState("requesting");
-        } catch (e) {
+        } catch {
           setJoinState("need_info");
         }
       } else {
@@ -187,6 +188,16 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
       }
       setUsers(initialUsers);
       showToast("Secure session connected successfully!");
+
+      if (!workerRef.current) {
+        workerRef.current = new Worker(
+          new URL("/ping-worker.js", window.location.origin),
+        );
+        workerRef.current.postMessage("start");
+        workerRef.current.onmessage = () => {
+          if (socket.connected) socket.emit("heartbeat");
+        };
+      }
     });
 
     socket.on("join-request", (request: JoinRequest) => {
@@ -276,42 +287,38 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
     }, 1000);
 
     let watchId: number;
+
+    const pushLocation = async (latitude: number, longitude: number) => {
+      if (!groupKey.current || !socket.connected) return;
+
+      const now = Date.now();
+      if (lastSentLocation.current) {
+        const timeDiff = now - lastSentLocation.current.time;
+        const dist = getDistanceInMeters(
+          lastSentLocation.current.lat,
+          lastSentLocation.current.lon,
+          latitude,
+          longitude,
+        );
+        if (dist < 10 && timeDiff < 5000) return;
+      }
+
+      setMyLocation({ latitude, longitude });
+      lastSentLocation.current = { lat: latitude, lon: longitude, time: now };
+
+      const encryptedPayload = await encryptAndSignPayload(groupKey.current, {
+        latitude,
+        longitude,
+      });
+      if (encryptedPayload) {
+        socket.emit("send-location", { roomId, payload: encryptedPayload });
+      }
+    };
+
     if (navigator.geolocation && joinState === "joined") {
       watchId = navigator.geolocation.watchPosition(
-        async (position) => {
-          if (!groupKey.current) return;
-
-          const { latitude, longitude } = position.coords;
-          const now = Date.now();
-
-          if (lastSentLocation.current) {
-            const timeDiff = now - lastSentLocation.current.time;
-            const dist = getDistanceInMeters(
-              lastSentLocation.current.lat,
-              lastSentLocation.current.lon,
-              latitude,
-              longitude,
-            );
-            if (dist < 10 && timeDiff < 5000) return;
-          }
-
-          setMyLocation({ latitude, longitude });
-          lastSentLocation.current = {
-            lat: latitude,
-            lon: longitude,
-            time: now,
-          };
-
-          const encryptedPayload = await encryptAndSignPayload(
-            groupKey.current,
-            { latitude, longitude },
-          );
-          if (!encryptedPayload) return;
-
-          if (socket.connected) {
-            socket.emit("send-location", { roomId, payload: encryptedPayload });
-          }
-        },
+        (position) =>
+          pushLocation(position.coords.latitude, position.coords.longitude),
         (err) => console.error("Geolocation Error:", err),
         {
           enableHighAccuracy: !isPocketMode,
@@ -320,16 +327,35 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
       );
     }
 
-    const heartbeatInterval = setInterval(() => {
-      if (socket.connected && joinState === "joined") socket.emit("heartbeat");
-    }, 20000);
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState === "visible" &&
+        joinState === "joined" &&
+        navigator.geolocation
+      ) {
+        navigator.geolocation.getCurrentPosition(
+          (position) =>
+            pushLocation(position.coords.latitude, position.coords.longitude),
+          (err) => console.error("Recovery Geo Error:", err),
+          { enableHighAccuracy: true, maximumAge: 0 },
+        );
+        if (socket.connected) socket.emit("heartbeat");
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       clearInterval(renderLoop);
-      clearInterval(heartbeatInterval);
       if (watchId) navigator.geolocation.clearWatch(watchId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       socket.off("connect", handleConnect);
       socket.removeAllListeners();
+      if (workerRef.current) {
+        workerRef.current.postMessage("stop");
+        workerRef.current.terminate();
+        workerRef.current = null;
+      }
     };
   }, [roomId, router, isPocketMode, showToast, joinState]);
 

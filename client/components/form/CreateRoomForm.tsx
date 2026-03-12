@@ -82,8 +82,8 @@ export default function CreateRoomForm() {
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="E.g., Rohit"
-              className="w-full h-[40px] bg-zinc-900 border border-dashed border-zinc-700 text-white px-3 text-sm rounded-none focus:outline-none focus:border-emerald-500 transition-colors"
+              placeholder="E.g., John"
+              className="w-full h-10 bg-zinc-900 border border-dashed border-zinc-700 text-white px-3 text-sm rounded-none focus:outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
 
@@ -91,7 +91,7 @@ export default function CreateRoomForm() {
             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">
               Session Duration
             </label>
-            <div className="h-[40px] w-full">
+            <div className="h-10 w-full">
               <CustomSelect
                 options={DURATION_OPTIONS}
                 value={expiryHours}
@@ -113,13 +113,13 @@ export default function CreateRoomForm() {
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
               placeholder="4-digit PIN"
-              className="w-full h-[40px] bg-zinc-900 border border-dashed border-zinc-700 text-white px-3 text-sm rounded-none focus:outline-none focus:border-emerald-500 transition-colors tracking-[0.2em]"
+              className="w-full h-10 bg-zinc-900 border border-dashed border-zinc-700 text-white px-3 text-sm rounded-none focus:outline-none focus:border-emerald-500 transition-colors tracking-[0.2em]"
             />
           </div>
 
           <div className="space-y-1.5 flex flex-col justify-end">
             <label
-              className={`flex items-center justify-between w-full h-[40px] px-3 border border-dashed cursor-pointer transition-colors rounded-none ${
+              className={`flex items-center justify-between w-full h-10 px-3 border border-dashed cursor-pointer transition-colors rounded-none ${
                 requiresApproval
                   ? "bg-emerald-500/10 border-emerald-500/50"
                   : "bg-zinc-900 border-zinc-700 hover:border-zinc-500"
@@ -162,7 +162,7 @@ export default function CreateRoomForm() {
         <button
           type="submit"
           disabled={isCreating || !username.trim()}
-          className="relative w-full h-[48px] flex items-center justify-center bg-white text-black font-bold text-sm md:text-base rounded-none px-4 mt-2 overflow-hidden transition-all hover:bg-zinc-200 active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 group shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] border border-dashed border-zinc-300"
+          className="relative w-full h-12 flex items-center justify-center bg-white text-black font-bold text-sm md:text-base rounded-none px-4 mt-2 overflow-hidden transition-all hover:bg-zinc-200 active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 group shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] border border-dashed border-zinc-300"
         >
           {isCreating ? (
             <>
