@@ -40,6 +40,7 @@ export default function RoomPage() {
     requestJoin,
     pendingRequests,
     resolveJoinRequest,
+    kickUser,
   } = useRoomSocket(roomId);
 
   const activeParticipants = Object.keys(users).length + (myLocation ? 1 : 0);
@@ -157,7 +158,12 @@ export default function RoomPage() {
               />
             )}
 
-            <Map users={users} myLocation={myLocation} />
+            <Map
+              users={users}
+              myLocation={myLocation}
+              isCreator={isCreator}
+              onKickUser={kickUser}
+            />
 
             <button
               onClick={() => setPocketMode(true)}

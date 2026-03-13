@@ -157,6 +157,25 @@ module.exports = function roomHandler(io, socket) {
     }
   });
 
+  socket.on("kick-user", async ({ roomId, targetUserId }) => {
+    const room = await getRoom(roomId);
+    if (!room || room.creator !== socket.clientId) return;
+
+    await redis.sadd(`room:${roomId}:rejected`, targetUserId);
+    await redis.expire(`room:${roomId}:rejected`, 24 * 60 * 60);
+
+    await removeUser(targetUserId);
+
+    io.to(targetUserId).emit("kicked");
+
+    const targetSockets = await io.in(targetUserId).fetchSockets();
+    for (const s of targetSockets) {
+      s.leave(roomId);
+    }
+
+    io.to(roomId).emit("user-left", { userId: targetUserId });
+  });
+
   async function performJoin(targetSocket, roomId, username, room) {
     try {
       await addUser(roomId, targetSocket.clientId, username);

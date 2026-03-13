@@ -170,6 +170,13 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
       setJoinState("rejected");
     });
 
+    socket.on("kicked", () => {
+      sessionStorage.removeItem(`trace_user_${roomId}`);
+      setError("You have been kicked from this session by the creator.");
+      setJoinState("error");
+      showToast("You were kicked out", "error");
+    });
+
     socket.on("room-joined", (data) => {
       setJoinState("joined");
       if (data?.expiryTime) setExpiryTime(data.expiryTime);
@@ -421,6 +428,12 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
     setPendingRequests((prev) => prev.filter((req) => req.userId !== userId));
   };
 
+  const kickUser = (targetUserId: string) => {
+    if (isCreator) {
+      socket.emit("kick-user", { roomId, targetUserId });
+    }
+  };
+
   return {
     joinState,
     roomRequirements,
@@ -432,5 +445,6 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
     requestJoin,
     pendingRequests,
     resolveJoinRequest,
+    kickUser,
   };
 }

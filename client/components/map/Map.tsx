@@ -29,6 +29,30 @@ const createColoredIcon = (color: string) => {
   });
 };
 
+function getDistanceInMeters(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+) {
+  const R = 6371e3;
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function formatDistance(meters: number) {
+  if (meters < 10) return "Just here";
+  if (meters < 1000) return `${Math.round(meters)}m away`;
+  return `${(meters / 1000).toFixed(2)}km away`;
+}
+
 interface UserLocation {
   id: string;
   username?: string;
@@ -45,6 +69,8 @@ interface Props {
     longitude: number;
     path?: [number, number][];
   } | null;
+  isCreator?: boolean;
+  onKickUser?: (userId: string) => void;
 }
 
 function LerpMarker({
@@ -123,7 +149,12 @@ function MapUpdater({
   return null;
 }
 
-export default function Map({ users, myLocation }: Props) {
+export default function Map({
+  users,
+  myLocation,
+  isCreator,
+  onKickUser,
+}: Props) {
   const [isAutoFollow, setIsAutoFollow] = useState(true);
   const defaultCenter: [number, number] = myLocation
     ? [myLocation.latitude, myLocation.longitude]
@@ -140,7 +171,7 @@ export default function Map({ users, myLocation }: Props) {
       {!isAutoFollow && (
         <button
           onClick={() => setIsAutoFollow(true)}
-          className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[400] bg-white text-black px-4 py-2 rounded-full text-sm font-semibold shadow-md"
+          className="absolute top-4 left-1/2 transform -translate-x-1/2 z-400 bg-white text-black px-4 py-2 rounded-full text-sm font-semibold shadow-md"
         >
           Resume Auto-Follow
         </button>
@@ -207,6 +238,23 @@ export default function Map({ users, myLocation }: Props) {
         {Object.values(users).map((user) => {
           const displayName = user.username || user.id.substring(0, 5);
           const color = user.isOffline ? "#6b7280" : stringToColor(displayName);
+
+          let distanceText = "";
+
+          if (!myLocation) {
+            distanceText = "Finding your GPS...";
+          } else if (user.latitude === 0 || user.longitude === 0) {
+            distanceText = "Waiting for loc...";
+          } else {
+            const dist = getDistanceInMeters(
+              myLocation.latitude,
+              myLocation.longitude,
+              user.latitude,
+              user.longitude,
+            );
+            distanceText = formatDistance(dist);
+          }
+
           return (
             <LerpMarker
               key={user.id}
@@ -214,12 +262,77 @@ export default function Map({ users, myLocation }: Props) {
               icon={createColoredIcon(color)}
             >
               <Popup>
-                <strong>{displayName}</strong> <br />
-                <span
-                  className={`text-xs font-semibold ${user.isOffline ? "text-amber-500 animate-pulse" : "text-emerald-500"}`}
-                >
-                  {user.isOffline ? "Reconnecting..." : "Active"}
-                </span>
+                <div style={{ minWidth: "140px" }}>
+                  <strong
+                    style={{
+                      fontSize: "14px",
+                      display: "block",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {displayName}
+                  </strong>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <span
+                      className={`text-xs font-semibold ${user.isOffline ? "text-amber-500 animate-pulse" : "text-emerald-500"}`}
+                    >
+                      {user.isOffline ? "Reconnecting..." : "Active"}
+                    </span>
+
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        fontFamily: "monospace",
+                        background: "#f4f4f5",
+                        color: "#52525b",
+                        padding: "2px 4px",
+                        borderRadius: "4px",
+                        border: "1px solid #e4e4e7",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {distanceText}
+                    </span>
+                  </div>
+
+                  {isCreator && onKickUser && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onKickUser(user.id);
+                      }}
+                      style={{
+                        marginTop: "10px",
+                        width: "100%",
+                        background: "#450a0a",
+                        color: "#f87171",
+                        border: "1px dashed #7f1d1d",
+                        borderRadius: "0",
+                        padding: "6px 0",
+                        fontSize: "10px",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      }}
+                      onMouseOver={(e) =>
+                        (e.currentTarget.style.background = "#7f1d1d")
+                      }
+                      onMouseOut={(e) =>
+                        (e.currentTarget.style.background = "#450a0a")
+                      }
+                    >
+                      Kick User
+                    </button>
+                  )}
+                </div>
               </Popup>
             </LerpMarker>
           );
