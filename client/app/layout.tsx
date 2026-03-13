@@ -69,7 +69,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
         <meta
@@ -78,7 +78,10 @@ export default function RootLayout({
         />
         <meta name="apple-mobile-web-app-title" content="trace.ly" />
       </head>
-      <body className="bg-zinc-950 text-zinc-50 min-h-screen font-sans antialiased selection:bg-white selection:text-black">
+      <body
+        className="bg-zinc-950 text-zinc-50 min-h-screen font-sans antialiased selection:bg-white selection:text-black"
+        suppressHydrationWarning
+      >
         <PWARegister />
         <ToastProvider>{children}</ToastProvider>
       </body>

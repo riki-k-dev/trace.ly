@@ -8,9 +8,9 @@ import CustomSelect from "../ui/CustomSelect";
 
 const DURATION_OPTIONS = [
   { label: "1 Hour", value: 1 },
+  { label: "3 Hours", value: 3 },
   { label: "6 Hours", value: 6 },
   { label: "12 Hours", value: 12 },
-  { label: "24 Hours", value: 24 },
 ];
 
 export default function CreateRoomForm() {

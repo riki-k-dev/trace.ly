@@ -45,10 +45,12 @@ module.exports = function roomHandler(io, socket) {
       }
 
       const roomId = await generateRoomId(redis);
-      const safeExpiry =
-        typeof expiryHours === "number" && expiryHours > 0 && expiryHours <= 24
-          ? expiryHours
-          : 1;
+
+      const ALLOWED_DURATIONS = [1, 3, 6, 12];
+      const safeExpiry = ALLOWED_DURATIONS.includes(expiryHours)
+        ? expiryHours
+        : 1;
+
       const expiryTime = Date.now() + safeExpiry * 60 * 60 * 1000;
 
       const safePin = String(pin || "").trim();

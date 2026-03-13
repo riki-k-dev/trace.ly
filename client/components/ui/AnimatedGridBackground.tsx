@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-
 export default function AnimatedGridBackground() {
   return (
     <>
@@ -58,12 +56,6 @@ export default function AnimatedGridBackground() {
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.75 h-0.75 bg-emerald-400 rounded-full shadow-[0_0_10px_2px_#34d399]"></div>
         </div>
       </div>
-
-      <motion.div
-        animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.05, 1] }}
-        transition={{ duration: 6, ease: "easeInOut", repeat: Infinity }}
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-200 h-100 bg-white/5 blur-[120px] rounded-full pointer-events-none"
-      ></motion.div>
 
       <style
         dangerouslySetInnerHTML={{
