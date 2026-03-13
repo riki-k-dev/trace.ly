@@ -247,15 +247,20 @@ module.exports = function roomHandler(io, socket) {
 
   socket.on("disconnect", async () => {
     clearInterval(presenceInterval);
+
+    const roomId = await redis.get(`user:${socket.clientId}:room`);
+    if (roomId) {
+      io.to(roomId).emit("peer-disconnected", { userId: socket.clientId });
+    }
+
     setTimeout(async () => {
       const activeSockets = await io.in(socket.clientId).fetchSockets();
       if (activeSockets.length === 0) {
-        const roomId = await removeUser(socket.clientId);
-        if (roomId) {
-          io.to(roomId).emit("peer-disconnected", { userId: socket.clientId });
-          io.to(roomId).emit("user-left", { userId: socket.clientId });
+        const removedRoomId = await removeUser(socket.clientId);
+        if (removedRoomId) {
+          io.to(removedRoomId).emit("user-left", { userId: socket.clientId });
         }
       }
-    }, 5000);
+    }, 60000);
   });
 };

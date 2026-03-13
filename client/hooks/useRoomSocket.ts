@@ -292,21 +292,22 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
       }
     }, 1000);
 
-    let watchId: number;
+    let locTimeout: NodeJS.Timeout;
+    let isMoving = true;
+    let lastPolledLoc = { lat: 0, lon: 0 };
 
     const pushLocation = async (latitude: number, longitude: number) => {
       if (!groupKey.current || !socket.connected) return;
 
       const now = Date.now();
       if (lastSentLocation.current) {
-        const timeDiff = now - lastSentLocation.current.time;
         const dist = getDistanceInMeters(
           lastSentLocation.current.lat,
           lastSentLocation.current.lon,
           latitude,
           longitude,
         );
-        if (dist < 5 && timeDiff < 5000) return;
+        if (dist < 5 && now - lastSentLocation.current.time < 5000) return;
       }
 
       const lastPathPoint = myPathRef.current[myPathRef.current.length - 1];
@@ -339,16 +340,39 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
       }
     };
 
-    if (navigator.geolocation && joinState === "joined") {
-      watchId = navigator.geolocation.watchPosition(
-        (position) =>
-          pushLocation(position.coords.latitude, position.coords.longitude),
-        (err) => console.error("Geolocation Error:", err),
-        {
-          enableHighAccuracy: !isPocketMode,
-          maximumAge: isPocketMode ? 10000 : 0,
+    const fetchNextLocation = () => {
+      if (joinState !== "joined" || !navigator.geolocation) return;
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+
+          if (lastPolledLoc.lat !== 0) {
+            const dist = getDistanceInMeters(
+              lastPolledLoc.lat,
+              lastPolledLoc.lon,
+              latitude,
+              longitude,
+            );
+            isMoving = dist > 5;
+          }
+          lastPolledLoc = { lat: latitude, lon: longitude };
+
+          await pushLocation(latitude, longitude);
+
+          const nextDelay = isMoving ? 3000 : 20000;
+          locTimeout = setTimeout(fetchNextLocation, nextDelay);
         },
+        (err) => {
+          console.error("Geo Error:", err);
+          locTimeout = setTimeout(fetchNextLocation, 10000);
+        },
+        { enableHighAccuracy: !isPocketMode, maximumAge: 0 },
       );
+    };
+
+    if (navigator.geolocation && joinState === "joined") {
+      fetchNextLocation();
     }
 
     const handleVisibilityChange = () => {
@@ -357,12 +381,8 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
         joinState === "joined" &&
         navigator.geolocation
       ) {
-        navigator.geolocation.getCurrentPosition(
-          (position) =>
-            pushLocation(position.coords.latitude, position.coords.longitude),
-          (err) => console.error("Recovery Geo Error:", err),
-          { enableHighAccuracy: true, maximumAge: 0 },
-        );
+        clearTimeout(locTimeout);
+        fetchNextLocation();
         if (socket.connected) socket.emit("heartbeat");
       }
     };
@@ -371,7 +391,7 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
 
     return () => {
       clearInterval(renderLoop);
-      if (watchId) navigator.geolocation.clearWatch(watchId);
+      clearTimeout(locTimeout);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       socket.off("connect", handleConnect);
       socket.removeAllListeners();
