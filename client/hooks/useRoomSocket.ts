@@ -11,6 +11,7 @@ export interface UserLocation {
   username?: string;
   latitude: number;
   longitude: number;
+  path?: [number, number][];
   timestamp?: number;
   isOffline?: boolean;
 }
@@ -61,6 +62,7 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
   const [myLocation, setMyLocation] = useState<{
     latitude: number;
     longitude: number;
+    path: [number, number][];
   } | null>(null);
   const [users, setUsers] = useState<Record<string, UserLocation>>({});
   const [expiryTime, setExpiryTime] = useState<number | null>(null);
@@ -81,6 +83,8 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
   } | null>(null);
   const groupKey = useRef<string | null>(null);
   const workerRef = useRef<Worker | null>(null);
+
+  const myPathRef = useRef<[number, number][]>([]);
 
   useEffect(() => {
     if (!roomId || typeof window === "undefined") return;
@@ -181,6 +185,7 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
             id: u.id,
             latitude: 0,
             longitude: 0,
+            path: [],
             username: u.username,
             isOffline: true,
           };
@@ -217,6 +222,7 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
           username,
           latitude: 0,
           longitude: 0,
+          path: [],
           isOffline: false,
         },
       }));
@@ -268,17 +274,17 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
       });
     });
 
-    socket.on("room-ended", () => {
-      showToast("Session was ended by the creator", "error");
-      router.push("/");
-    });
-
     const renderLoop = setInterval(() => {
       if (joinState === "joined") {
         setUsers((prev) => {
           const updated = { ...prev };
           Object.keys(locationBuffer.current).forEach((id) => {
-            updated[id] = { ...updated[id], ...locationBuffer.current[id] };
+            const incoming = locationBuffer.current[id];
+            updated[id] = {
+              ...updated[id],
+              ...incoming,
+              path: incoming.path || updated[id]?.path || [],
+            };
           });
           locationBuffer.current = {};
           return updated;
@@ -300,16 +306,34 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
           latitude,
           longitude,
         );
-        if (dist < 10 && timeDiff < 5000) return;
+        if (dist < 5 && timeDiff < 5000) return;
       }
 
-      setMyLocation({ latitude, longitude });
+      const lastPathPoint = myPathRef.current[myPathRef.current.length - 1];
+      if (
+        !lastPathPoint ||
+        getDistanceInMeters(
+          lastPathPoint[0],
+          lastPathPoint[1],
+          latitude,
+          longitude,
+        ) > 5
+      ) {
+        myPathRef.current = [
+          ...myPathRef.current,
+          [latitude, longitude] as [number, number],
+        ].slice(-50);
+      }
+
+      setMyLocation({ latitude, longitude, path: myPathRef.current });
       lastSentLocation.current = { lat: latitude, lon: longitude, time: now };
 
       const encryptedPayload = await encryptAndSignPayload(groupKey.current, {
         latitude,
         longitude,
+        path: myPathRef.current,
       });
+
       if (encryptedPayload) {
         socket.emit("send-location", { roomId, payload: encryptedPayload });
       }

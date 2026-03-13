@@ -1,6 +1,6 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useEffect, useState, useRef } from "react";
@@ -27,12 +27,13 @@ interface UserLocation {
   username?: string;
   latitude: number;
   longitude: number;
+  path?: [number, number][];
   isOffline?: boolean;
 }
 
 interface Props {
   users: Record<string, UserLocation>;
-  myLocation: { latitude: number; longitude: number } | null;
+  myLocation: { latitude: number; longitude: number; path?: [number, number][] } | null;
 }
 
 function LerpMarker({
@@ -59,10 +60,7 @@ function LerpMarker({
 
       markerRef.current?.setLatLng([currentLat, currentLng]);
 
-      if (
-        Math.abs(targetLat - currentLat) > 0.00001 ||
-        Math.abs(targetLng - currentLng) > 0.00001
-      ) {
+      if (Math.abs(targetLat - currentLat) > 0.00001 || Math.abs(targetLng - currentLng) > 0.00001) {
         animationFrame = requestAnimationFrame(animate);
       }
     };
@@ -78,31 +76,21 @@ function LerpMarker({
   );
 }
 
-function MapUpdater({
-  center,
-  isAutoFollow,
-}: {
-  center: [number, number];
-  isAutoFollow: boolean;
-}) {
+function MapUpdater({ center, isAutoFollow }: { center: [number, number]; isAutoFollow: boolean; }) {
   const map = useMap();
   useEffect(() => {
     if (isAutoFollow) map.setView(center, map.getZoom());
   }, [center, map, isAutoFollow]);
 
   useEffect(() => {
-    map.on("dragstart", () =>
-      map.getContainer().dispatchEvent(new CustomEvent("mapDragged")),
-    );
+    map.on("dragstart", () => map.getContainer().dispatchEvent(new CustomEvent("mapDragged")));
   }, [map]);
   return null;
 }
 
 export default function Map({ users, myLocation }: Props) {
   const [isAutoFollow, setIsAutoFollow] = useState(true);
-  const defaultCenter: [number, number] = myLocation
-    ? [myLocation.latitude, myLocation.longitude]
-    : [20, 77];
+  const defaultCenter: [number, number] = myLocation ? [myLocation.latitude, myLocation.longitude] : [20, 77];
 
   useEffect(() => {
     const handleDrag = () => setIsAutoFollow(false);
@@ -115,31 +103,38 @@ export default function Map({ users, myLocation }: Props) {
       {!isAutoFollow && (
         <button
           onClick={() => setIsAutoFollow(true)}
-          className="absolute top-4 left-1/2 transform -translate-x-1/2 z-400 bg-white text-black px-4 py-2 rounded-full text-sm font-semibold shadow-md"
+          className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[400] bg-white text-black px-4 py-2 rounded-full text-sm font-semibold shadow-md"
         >
           Resume Auto-Follow
         </button>
       )}
-      <MapContainer
-        center={defaultCenter}
-        zoom={15}
-        style={{ height: "100%", width: "100%", background: "#18181b" }}
-        zoomControl={false}
-      >
+      <MapContainer center={defaultCenter} zoom={15} style={{ height: "100%", width: "100%", background: "#18181b" }} zoomControl={false}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        
+        {myLocation && <MapUpdater center={[myLocation.latitude, myLocation.longitude]} isAutoFollow={isAutoFollow} />}
 
-        {myLocation && (
-          <MapUpdater
-            center={[myLocation.latitude, myLocation.longitude]}
-            isAutoFollow={isAutoFollow}
+        {myLocation && myLocation.path && myLocation.path.length > 1 && (
+          <Polyline 
+            positions={myLocation.path} 
+            pathOptions={{ color: "#3b82f6", weight: 4, opacity: 0.6, dashArray: "8, 8", lineCap: "round", lineJoin: "round" }} 
           />
         )}
 
+        {Object.values(users).map((user) => {
+          if (!user.path || user.path.length < 2) return null;
+          const displayName = user.username || user.id.substring(0, 5);
+          const color = user.isOffline ? "#6b7280" : stringToColor(displayName);
+          return (
+            <Polyline 
+              key={`path-${user.id}`}
+              positions={user.path} 
+              pathOptions={{ color, weight: 4, opacity: 0.6, lineCap: "round", lineJoin: "round" }} 
+            />
+          );
+        })}
+
         {myLocation && (
-          <LerpMarker
-            position={[myLocation.latitude, myLocation.longitude]}
-            icon={createColoredIcon("#3b82f6")}
-          >
+          <LerpMarker position={[myLocation.latitude, myLocation.longitude]} icon={createColoredIcon("#3b82f6")}>
             <Popup>
               <strong>You</strong>
             </Popup>
@@ -148,19 +143,16 @@ export default function Map({ users, myLocation }: Props) {
 
         {Object.values(users).map((user) => {
           const displayName = user.username || user.id.substring(0, 5);
+          const color = user.isOffline ? "#6b7280" : stringToColor(displayName);
           return (
             <LerpMarker
               key={user.id}
               position={[user.latitude, user.longitude]}
-              icon={createColoredIcon(
-                user.isOffline ? "#6b7280" : stringToColor(displayName),
-              )}
+              icon={createColoredIcon(color)}
             >
               <Popup>
                 <strong>{displayName}</strong> <br />
-                <span className="text-xs text-zinc-500">
-                  {user.isOffline ? "Offline" : "Active"}
-                </span>
+                <span className="text-xs text-zinc-500">{user.isOffline ? "Offline" : "Active"}</span>
               </Popup>
             </LerpMarker>
           );
