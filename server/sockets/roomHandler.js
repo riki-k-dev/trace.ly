@@ -210,8 +210,11 @@ module.exports = function roomHandler(io, socket) {
     const room = await getRoom(roomId);
     if (room && room.creator === socket.clientId) {
       io.to(roomId).emit("room-ended");
-      io.in(roomId).socketsLeave(roomId);
-      await deleteRoom(roomId);
+
+      setTimeout(async () => {
+        io.in(roomId).socketsLeave(roomId);
+        await deleteRoom(roomId);
+      }, 500);
     }
   });
 

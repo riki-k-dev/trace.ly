@@ -281,6 +281,13 @@ export function useRoomSocket(roomId: string, isPocketMode: boolean = false) {
       });
     });
 
+    socket.on("room-ended", () => {
+      sessionStorage.removeItem(`trace_creator_${roomId}`);
+      sessionStorage.removeItem(`trace_user_${roomId}`);
+      showToast("Session has ended", "error");
+      router.push("/");
+    });
+
     const renderLoop = setInterval(() => {
       if (joinState === "joined") {
         setUsers((prev) => {
