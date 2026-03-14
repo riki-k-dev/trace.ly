@@ -38,7 +38,7 @@ export default function RoomHeader({
 
         <button
           onClick={handleAction}
-          className={`group flex items-center gap-2 px-3.5 py-2 text-sm font-medium border border-dashed rounded-none transition-all duration-300 ${
+          className={`group flex items-center gap-2 px-3.5 py-2 text-sm font-medium border border-dashed rounded-none transition-all duration-300 cursor-pointer ${
             isCreator
               ? "text-red-400 bg-red-500/10 border-red-500/20 hover:bg-red-500 hover:text-white"
               : "text-zinc-300 bg-zinc-500/10 border-zinc-500/30 hover:bg-zinc-700 hover:text-white"

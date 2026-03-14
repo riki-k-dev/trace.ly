@@ -49,7 +49,7 @@ export default function PocketMode({ onExit }: PocketModeProps) {
       </div>
       <button
         onClick={onExit}
-        className="px-6 py-3 bg-zinc-800 border border-zinc-600 rounded-none text-white text-sm font-medium hover:bg-zinc-700 transition-colors shadow-xl"
+        className="px-6 py-3 bg-zinc-800 border border-zinc-600 rounded-none text-white text-sm font-medium hover:bg-zinc-700 transition-colors shadow-xl cursor-pointer"
       >
         Return to Map
       </button>

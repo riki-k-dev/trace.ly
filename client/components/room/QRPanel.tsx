@@ -98,7 +98,7 @@ export default function QRPanel({ roomId, isMobile }: QRPanelProps) {
       <div className="flex gap-2.5 lg:gap-3 w-full mt-auto pt-3 lg:pt-5">
         <button
           onClick={handleShare}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-white text-black py-2.5 px-3 rounded-none text-sm font-semibold hover:bg-zinc-200 transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 bg-white text-black py-2.5 px-3 rounded-none text-sm font-semibold hover:bg-zinc-200 transition-colors cursor-pointer"
         >
           {copied ? (
             <>
@@ -138,7 +138,7 @@ export default function QRPanel({ roomId, isMobile }: QRPanelProps) {
         </button>
         <button
           onClick={downloadQR}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-zinc-800 text-white py-2.5 px-3 rounded-none text-sm font-semibold hover:bg-zinc-700 transition-colors border border-dashed border-zinc-700"
+          className="flex-1 flex items-center justify-center gap-1.5 bg-zinc-800 text-white py-2.5 px-3 rounded-none text-sm font-semibold hover:bg-zinc-700 transition-colors border border-dashed border-zinc-700 cursor-pointer"
         >
           <svg
             className="w-4 h-4"

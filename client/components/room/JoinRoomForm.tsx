@@ -75,7 +75,7 @@ export default function JoinRoomForm({
             disabled={
               !username.trim() || (requirements?.hasPin && pin.length < 4)
             }
-            className="w-full flex items-center justify-center bg-white text-black font-bold text-sm md:text-base rounded-none px-4 py-4 transition-all hover:bg-zinc-200 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 mt-4 border border-dashed border-zinc-300 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+            className="w-full flex items-center justify-center bg-white text-black font-bold text-sm md:text-base rounded-none px-4 py-4 transition-all hover:bg-zinc-200 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 mt-4 border border-dashed border-zinc-300 shadow-[0_0_15px_rgba(255,255,255,0.1)] cursor-pointer"
           >
             Enter Room
           </button>

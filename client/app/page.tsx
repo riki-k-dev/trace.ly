@@ -47,7 +47,7 @@ export default function Home() {
           <div className="flex bg-zinc-900/50 p-1.5 rounded-none mb-2 border border-dashed border-zinc-700/80">
             <button
               onClick={() => setActiveTab("create")}
-              className={`flex-1 py-2 text-xs md:text-sm font-semibold rounded-none transition-all relative ${
+              className={`flex-1 py-2 text-xs md:text-sm font-semibold rounded-none transition-all relative cursor-pointer ${
                 activeTab === "create"
                   ? "text-white"
                   : "text-zinc-500 hover:text-zinc-300"
@@ -64,7 +64,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => setActiveTab("join")}
-              className={`flex-1 py-2 text-xs md:text-sm font-semibold rounded-none transition-all relative ${
+              className={`flex-1 py-2 text-xs md:text-sm font-semibold rounded-none transition-all relative cursor-pointer ${
                 activeTab === "join"
                   ? "text-white"
                   : "text-zinc-500 hover:text-zinc-300"

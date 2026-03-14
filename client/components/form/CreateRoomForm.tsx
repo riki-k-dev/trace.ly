@@ -162,7 +162,7 @@ export default function CreateRoomForm() {
         <button
           type="submit"
           disabled={isCreating || !username.trim()}
-          className="relative w-full h-12 flex items-center justify-center bg-white text-black font-bold text-sm md:text-base rounded-none px-4 mt-2 overflow-hidden transition-all hover:bg-zinc-200 active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 group shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] border border-dashed border-zinc-300"
+          className="relative w-full h-12 flex items-center justify-center bg-white text-black font-bold text-sm md:text-base rounded-none px-4 mt-2 overflow-hidden transition-all hover:bg-zinc-200 active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 group shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] border border-dashed border-zinc-300 cursor-pointer"
         >
           {isCreating ? (
             <>

@@ -39,13 +39,13 @@ export default function JoinRequests({
                 <div className="flex gap-2">
                   <button
                     onClick={() => onResolve(req.userId, req.username, true)}
-                    className="flex-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 py-1.5 text-xs font-bold transition-colors"
+                    className="flex-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 py-1.5 text-xs font-bold transition-colors cursor-pointer"
                   >
                     Accept
                   </button>
                   <button
                     onClick={() => onResolve(req.userId, req.username, false)}
-                    className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 py-1.5 text-xs font-bold transition-colors"
+                    className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 py-1.5 text-xs font-bold transition-colors cursor-pointer"
                   >
                     Decline
                   </button>
