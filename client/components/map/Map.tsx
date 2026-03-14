@@ -11,6 +11,7 @@ import {
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useEffect, useState, useRef } from "react";
+import MapThemeToggle from "./MapThemeToggle"; 
 
 const stringToColor = (str: string) => {
   let hash = 0;
@@ -156,6 +157,8 @@ export default function Map({
   onKickUser,
 }: Props) {
   const [isAutoFollow, setIsAutoFollow] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
   const defaultCenter: [number, number] = myLocation
     ? [myLocation.latitude, myLocation.longitude]
     : [20, 77];
@@ -168,21 +171,39 @@ export default function Map({
 
   return (
     <div style={{ height: "100%", width: "100%", position: "relative" }}>
+      <MapThemeToggle
+        isDarkMode={isDarkMode}
+        onToggle={() => setIsDarkMode(!isDarkMode)}
+      />
+
       {!isAutoFollow && (
         <button
           onClick={() => setIsAutoFollow(true)}
-          className="absolute top-4 left-1/2 transform -translate-x-1/2 z-400 bg-white text-black px-4 py-2 rounded-full text-sm font-semibold shadow-md"
+          className="absolute top-16 right-4 z-1000 bg-white text-black px-4 py-2 rounded-none border border-dashed border-zinc-400 text-sm font-semibold shadow-xl hover:bg-zinc-200 transition-colors cursor-pointer"
         >
           Resume Auto-Follow
         </button>
       )}
+
       <MapContainer
         center={defaultCenter}
         zoom={15}
-        style={{ height: "100%", width: "100%", background: "#18181b" }}
+        style={{
+          height: "100%",
+          width: "100%",
+          background: isDarkMode ? "#18181b" : "#f4f4f5",
+        }}
         zoomControl={false}
       >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <TileLayer
+          key={isDarkMode ? "dark_matter" : "osm"}
+          url={
+            isDarkMode
+              ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          }
+          attribution=""
+        />
 
         {myLocation && (
           <MapUpdater

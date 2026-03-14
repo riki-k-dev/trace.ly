@@ -102,7 +102,7 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="p-3 md:p-4 relative flex flex-col justify-center min-h-[420px] sm:min-h-[300px]">
+          <div className="p-3 md:p-4 relative flex flex-col justify-center min-h-105 sm:min-h-75">
             <AnimatePresence mode="wait">
               {activeTab === "create" ? (
                 <motion.div
