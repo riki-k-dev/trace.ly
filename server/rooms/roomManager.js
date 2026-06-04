@@ -5,8 +5,7 @@ const isSecure = REDIS_URL && REDIS_URL.startsWith("rediss://");
 
 const redisOptions = {
   family: 4,
-  enableOfflineQueue: false,
-  maxRetriesPerRequest: 3,
+  maxRetriesPerRequest: null,
   keepAlive: 10000,
   ...(isSecure && { tls: { rejectUnauthorized: false } }),
   retryStrategy(times) {
