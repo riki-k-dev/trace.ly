@@ -1,7 +1,7 @@
 const Redis = require("ioredis");
 const { REDIS_URL, MAX_ROOM_SIZE } = require("../config/env");
 
-const redis = new Redis(REDIS_URL);
+const redis = new Redis(REDIS_URL, { family: 4 });
 
 redis.on("error", (err) => console.error("Redis Connection Error:", err));
 

@@ -58,6 +58,9 @@ async function startServer() {
   const pubClient = redis.duplicate();
   const subClient = redis.duplicate();
 
+  pubClient.on("error", (err) => console.error("PubClient Error:", err));
+  subClient.on("error", (err) => console.error("SubClient Error:", err));
+
   io.adapter(createAdapter(pubClient, subClient));
 
   io.on("connection", (socket) => {
