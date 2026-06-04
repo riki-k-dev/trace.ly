@@ -1,10 +1,14 @@
 const Redis = require("ioredis");
 const { REDIS_URL, MAX_ROOM_SIZE } = require("../config/env");
 
+const isSecure = REDIS_URL && REDIS_URL.startsWith("rediss://");
+
 const redisOptions = {
   family: 4,
-  maxRetriesPerRequest: null,
+  enableOfflineQueue: false,
+  maxRetriesPerRequest: 3,
   keepAlive: 10000,
+  ...(isSecure && { tls: { rejectUnauthorized: false } }),
   retryStrategy(times) {
     return Math.min(times * 100, 3000);
   },
@@ -13,7 +17,7 @@ const redisOptions = {
 const redis = new Redis(REDIS_URL, redisOptions);
 
 redis.on("error", (err) => {
-  // console.error("Redis Connection Error:", err.message);
+  console.error("Redis Connection Error:", err.message);
 });
 
 const roomCache = new Map();
