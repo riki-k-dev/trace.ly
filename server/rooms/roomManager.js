@@ -3,6 +3,8 @@ const { REDIS_URL, MAX_ROOM_SIZE } = require("../config/env");
 
 const redis = new Redis(REDIS_URL);
 
+redis.on("error", (err) => console.error("Redis Connection Error:", err));
+
 const roomCache = new Map();
 const CACHE_TTL = 30 * 1000;
 
